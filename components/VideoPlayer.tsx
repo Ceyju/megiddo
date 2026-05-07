@@ -98,6 +98,7 @@ function IframePlayer({ providers, title, torrentQuery, streamingLinks }: {
           <iframe key={providers[active]?.src} src={providers[active]?.src} title={title}
             allowFullScreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
             referrerPolicy="origin"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock"
             style={{ width: "100%", height: "100%", border: "none", display: "block" }} />
         </div>
       )}
