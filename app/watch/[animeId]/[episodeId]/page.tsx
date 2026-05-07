@@ -97,8 +97,8 @@ export default async function WatchPage({ params }: Props) {
   // }
 
   const iframeProviders: IframeProvider[] = [
-    { label: "VidLink", src: `https://vidlink.pro/tv/${vidlinkId}/1/${episodeNumber}` },
     { label: "VidSrc", src: `https://vsembed.ru/embed/tv?imdb=${imdbId}` },
+    { label: "VidLink", src: `https://vidlink.pro/tv/${vidlinkId}/1/${episodeNumber}` },
   ];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
