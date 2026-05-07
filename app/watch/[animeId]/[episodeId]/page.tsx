@@ -68,37 +68,9 @@ export default async function WatchPage({ params }: Props) {
     }
   }
 
-  // Fallback: AniList externalLinks -- to be removed
-  if (!imdbId) {
-    imdbId = anime.externalLinks
-      ?.find(l => l.site === 'IMDb' || l.url?.includes('imdb.com/title/'))
-      ?.url?.match(/tt\d+/)?.[0] ?? null;
-  }
-
-  // VidLink prefers IMDb ID; falls back to TVDb ID if IMDb is unavailable -- to be removed
-  const vidlinkId: string | null = imdbId ?? (tvdbId ? String(tvdbId) : null);
-
-  // Resolve TMDB ID from IMDB ID for VidLink TV format
-  // let tmdbId: number | null = null;
-  // if (imdbId && process.env.TMDB_API_KEY) {
-  //   try {
-  //     const tmdbRes = await fetch(
-  //       `https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id&api_key=${process.env.TMDB_API_KEY}`,
-  //       { next: { revalidate: 86400 } }
-  //     );
-  //     if (tmdbRes.ok) {
-  //       const tmdbData = await tmdbRes.json();
-  //       const tvResult = tmdbData.tv_results?.[0] ?? tmdbData.tv_episode_results?.[0];
-  //       tmdbId = tvResult?.id ?? null;
-  //     }
-  //   } catch {
-  //     // non-fatal
-  //   }
-  // }
-
   const iframeProviders: IframeProvider[] = [
-    { label: "VidSrc", src: `https://vsembed.ru/embed/tv?imdb=${imdbId}` },
-    { label: "VidLink", src: `https://vidlink.pro/tv/${vidlinkId}/1/${episodeNumber}` },
+    { label: "Videasy", src: `https://player.videasy.net/anime/${anilistId}/${episodeNumber}` },
+    { label: "VidFast", src: `https://vidfast.pro/tv/${imdbId}/1/${episodeNumber}?autoPlay=true` },
   ];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
