@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { searchManga } from '@/lib/mangadex';
-import { searchComick } from '@/lib/comick';
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -10,15 +9,7 @@ interface Props {
 export default async function MangaSearchPage({ searchParams }: Props) {
   const { q } = await searchParams;
   const query = q?.trim() ?? '';
-  const [mdResults, ckResults] = query.length > 1
-    ? await Promise.all([searchManga(query, 18), searchComick(query, 18)])
-    : [[], []];
-  // De-duplicate: if a title appears in both, prefer MangaDex (has UUID id)
-  const ckSlugSet = new Set(ckResults.map(r => r.id));
-  const merged = [
-    ...mdResults,
-    ...ckResults.filter(r => !mdResults.some(m => m.title.toLowerCase() === r.title.toLowerCase())),
-  ];
+  const merged = query.length > 1 ? await searchManga(query, 18) : [];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
@@ -65,9 +56,6 @@ export default async function MangaSearchPage({ searchParams }: Props) {
                   <div style={{ position: 'absolute', top: '6px', left: '6px', padding: '2px 7px', background: typeColor, fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.5rem', letterSpacing: '0.12em', color: typeColor === 'var(--lime)' ? 'var(--ink)' : 'var(--paper)', textTransform: 'uppercase' }}>
                     {typeLabel}
                   </div>
-                  {ckSlugSet.has(m.id) && (
-                    <div style={{ position: 'absolute', bottom: '6px', right: '6px', padding: '2px 6px', background: 'var(--ink)', border: '1px solid var(--border-2)', fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.45rem', letterSpacing: '0.1em', color: 'var(--lime)', textTransform: 'uppercase' }}>CK</div>
-                  )}
                 </div>
                 <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.72rem', letterSpacing: '0.05em', color: 'var(--paper)', textTransform: 'uppercase', lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                   {m.title}
