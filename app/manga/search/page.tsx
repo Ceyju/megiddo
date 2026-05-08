@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { searchManga } from '@/lib/mangadex';
+import { searchComick } from '@/lib/comick';
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -10,7 +10,15 @@ interface Props {
 export default async function MangaSearchPage({ searchParams }: Props) {
   const { q } = await searchParams;
   const query = q?.trim() ?? '';
-  const results = query.length > 1 ? await searchManga(query, 24) : [];
+  const [mdResults, ckResults] = query.length > 1
+    ? await Promise.all([searchManga(query, 18), searchComick(query, 18)])
+    : [[], []];
+  // De-duplicate: if a title appears in both, prefer MangaDex (has UUID id)
+  const ckSlugSet = new Set(ckResults.map(r => r.id));
+  const merged = [
+    ...mdResults,
+    ...ckResults.filter(r => !mdResults.some(m => m.title.toLowerCase() === r.title.toLowerCase())),
+  ];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
@@ -35,13 +43,13 @@ export default async function MangaSearchPage({ searchParams }: Props) {
 
       {query && (
         <h2 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '1.2rem', letterSpacing: '0.08em', color: 'var(--paper)', marginBottom: '1.25rem' }}>
-          {results.length} RESULTS FOR &ldquo;{query.toUpperCase()}&rdquo;
+          {merged.length} RESULTS FOR &ldquo;{query.toUpperCase()}&rdquo;
         </h2>
       )}
 
-      {results.length > 0 ? (
+      {merged.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-          {results.map(m => {
+          {merged.map(m => {
             const typeLabel = m.type === 'manhwa' ? 'MANHWA' : m.type === 'manhua' ? 'MANHUA' : 'MANGA';
             const typeColor = m.type === 'manhwa' ? 'var(--lime)' : m.type === 'manhua' ? '#FF8800' : 'var(--red)';
             return (
@@ -57,6 +65,9 @@ export default async function MangaSearchPage({ searchParams }: Props) {
                   <div style={{ position: 'absolute', top: '6px', left: '6px', padding: '2px 7px', background: typeColor, fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.5rem', letterSpacing: '0.12em', color: typeColor === 'var(--lime)' ? 'var(--ink)' : 'var(--paper)', textTransform: 'uppercase' }}>
                     {typeLabel}
                   </div>
+                  {ckSlugSet.has(m.id) && (
+                    <div style={{ position: 'absolute', bottom: '6px', right: '6px', padding: '2px 6px', background: 'var(--ink)', border: '1px solid var(--border-2)', fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.45rem', letterSpacing: '0.1em', color: 'var(--lime)', textTransform: 'uppercase' }}>CK</div>
+                  )}
                 </div>
                 <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.72rem', letterSpacing: '0.05em', color: 'var(--paper)', textTransform: 'uppercase', lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                   {m.title}

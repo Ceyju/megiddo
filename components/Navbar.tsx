@@ -63,9 +63,9 @@ export default function Navbar() {
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-7 ml-2">
           {[
-            { href: "/", label: "HOME" },
-            { href: "/search", label: "BROWSE" },
-            { href: "/manga", label: "MANGA" },
+            { href: "/", label: "ANIME" },
+            // { href: "/search", label: "BROWSE" },
+            { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANWHA" },
           ].map(({ href, label }) => (
             <Link
               key={href}

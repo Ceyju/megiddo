@@ -5,13 +5,24 @@ import Image from 'next/image';
 import { useState } from 'react';
 import type { MDManga } from '@/lib/mangadex';
 
-export default function MangaCard({ manga }: { manga: MDManga }) {
+const KNOWN_HOSTS = [
+  'uploads.mangadex.org', 'media.kitsu.app', 's4.anilist.co',
+];
+
+function isKnownHost(url: string | null): boolean {
+  if (!url) return false;
+  try { return KNOWN_HOSTS.some(h => new URL(url).hostname.endsWith(h)); }
+  catch { return false; }
+}
+
+export default function MangaCard({ manga, href, priority }: { manga: MDManga; href?: string; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const typeLabel = manga.type === 'manhwa' ? 'MANHWA' : manga.type === 'manhua' ? 'MANHUA' : 'MANGA';
   const typeColor = manga.type === 'manhwa' ? 'var(--lime)' : manga.type === 'manhua' ? '#FF8800' : 'var(--red)';
+  const resolvedHref = href ?? `/manga/${manga.id}`;
 
   return (
-    <Link href={`/manga/${manga.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+    <Link href={resolvedHref} style={{ textDecoration: 'none', display: 'block' }}>
       <div
         style={{ position: 'relative', aspectRatio: '2/3', overflow: 'hidden', background: 'var(--surface)', marginBottom: '0.5rem' }}
         onMouseEnter={() => setHovered(true)}
@@ -22,8 +33,10 @@ export default function MangaCard({ manga }: { manga: MDManga }) {
             src={manga.coverUrl}
             alt={manga.title}
             fill
+            unoptimized={!isKnownHost(manga.coverUrl)}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 180px"
             style={{ objectFit: 'cover', transition: 'transform 0.4s ease', transform: hovered ? 'scale(1.04)' : 'scale(1)' }}
+            priority={priority}
           />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

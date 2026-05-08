@@ -1,11 +1,72 @@
-import Link from 'next/link';
-import { getPopularManga, getLatestManga } from '@/lib/mangadex';
-import { getMHMangaList, type MHManga } from '@/lib/mangahook';
+import { Suspense } from 'react';
+import { getPopularManga, getLatestManga, getTrendingManga } from '@/lib/mangadex';
+import { getKitsuPopular, getKitsuLatest, getKitsuTopRated } from '@/lib/kitsu';
+import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/anilist';
+import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
+import MangaSourceTabs from '@/components/MangaSourceTabs';
 
 export const revalidate = 600;
 
-function Section({ label, accent, children }: { label: string; accent?: string; children: React.ReactNode }) {
+interface Props {
+  searchParams: Promise<{ source?: string }>;
+}
+
+type SourceData = {
+  popular: MDManga[];
+  latest: MDManga[];
+  trending: MDManga[];
+  trendingLabel: string;
+};
+
+async function fetchBySource(source: string): Promise<SourceData> {
+  switch (source) {
+    case 'kitsu': {
+      const [popular, latest, trending] = await Promise.all([
+        getKitsuPopular(20),
+        getKitsuLatest(20),
+        getKitsuTopRated(20),
+      ]);
+      return { popular, latest, trending, trendingLabel: 'TOP RATED' };
+    }
+    case 'anilist': {
+      // AniList catalogue — chapters + images served via MangaDex
+      const [popular, latest, trending] = await Promise.all([
+        getPopularMangaAL(20),
+        getLatestMangaAL(20),
+        getTrendingMangaAL(20),
+      ]);
+      return { popular, latest, trending, trendingLabel: 'TRENDING' };
+    }
+    default: {
+      // mangadex
+      const [popular, latest, trending] = await Promise.all([
+        getPopularManga(24),
+        getLatestManga(24),
+        getTrendingManga(24),
+      ]);
+      return { popular, latest, trending, trendingLabel: 'TRENDING' };
+    }
+  }
+}
+
+function cardHref(manga: MDManga): string {
+  // comix titles redirect to search since they don't have direct detail pages
+  if (manga.id.startsWith('comix:')) {
+    return `/manga/search?q=${encodeURIComponent(manga.title)}`;
+  }
+  return `/manga/${encodeURIComponent(manga.id)}`;
+}
+
+function Section({
+  label,
+  accent,
+  children,
+}: {
+  label: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section style={{ marginBottom: '3rem' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
@@ -18,53 +79,52 @@ function Section({ label, accent, children }: { label: string; accent?: string; 
   );
 }
 
-function MHCard({ manga }: { manga: MHManga }) {
+function Grid({ items }: { items: MDManga[] }) {
+  if (!items.length) {
+    return (
+      <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase', padding: '1.5rem 0' }}>
+        No data available from this source
+      </p>
+    );
+  }
   return (
-    <Link href={`/manga/${manga.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div style={{ position: 'relative', aspectRatio: '2/3', overflow: 'hidden', background: 'var(--surface)', marginBottom: '0.5rem' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={manga.image}
-          alt={manga.title}
-          referrerPolicy="no-referrer"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <div style={{ position: 'absolute', top: '6px', left: '6px', padding: '2px 7px', background: 'var(--red)', fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.5rem', letterSpacing: '0.12em', color: 'var(--paper)', textTransform: 'uppercase' }}>
-          MK
-        </div>
-      </div>
-      <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.72rem', letterSpacing: '0.05em', color: 'var(--paper)', textTransform: 'uppercase', lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-        {manga.title}
-      </p>
-      <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.6rem', color: 'var(--muted)', marginTop: '2px' }}>
-        {manga.chapter?.replace(/-/g, ' ')}
-      </p>
-    </Link>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
+      {items.map((m, i) => <MangaCard key={m.id} manga={m} href={cardHref(m)} priority={i === 0} />)}
+    </div>
   );
 }
 
-export default async function MangaPage() {
-  const [popular, latest, mkTrending] = await Promise.all([
-    getPopularManga(24),
-    getLatestManga(24),
-    getMHMangaList('topview'),
-  ]);
+const SOURCE_LABELS: Record<string, string> = {
+  mangadex: 'MangaDex',
+  kitsu: 'GoManga',
+  anilist: 'MangaDex',
+};
+
+const VALID_SOURCES = ['mangadex', 'kitsu', 'anilist'];
+
+export default async function MangaPage({ searchParams }: Props) {
+  const { source: rawSource } = await searchParams;
+  const source = VALID_SOURCES.includes(rawSource ?? '')
+    ? (rawSource as string)
+    : 'anilist';
+
+  const { popular, latest, trending, trendingLabel } = await fetchBySource(source);
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
 
-      {/* Page header */}
+      {/* Header */}
       <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '2rem' }}>
         <h1 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '0.06em', color: 'var(--paper)', lineHeight: 1 }}>
-          MANGA <span style={{ color: 'var(--red)' }}>&</span> MANHWA
+          MANGA <span style={{ color: 'var(--red)' }}>|</span> MANHUA <span style={{ color: 'var(--red)' }}>|</span> MANHWA
         </h1>
         <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase', marginTop: '4px' }}>
-          Powered by MangaDex — Free, ad-free, community-driven
+          Source: {SOURCE_LABELS[source]} — Free, ad-free, community-driven
         </p>
       </div>
 
-      {/* Search bar */}
-      <form action="/manga/search" method="get" style={{ marginBottom: '2.5rem', display: 'flex', gap: '8px', maxWidth: '520px' }}>
+      {/* Search */}
+      <form action="/manga/search" method="get" style={{ marginBottom: '2rem', display: 'flex', gap: '8px', maxWidth: '520px' }}>
         <input
           name="q"
           placeholder="Search manga, manhwa, manhua..."
@@ -75,23 +135,22 @@ export default async function MangaPage() {
         </button>
       </form>
 
+      {/* Source tabs */}
+      <Suspense fallback={<div style={{ height: '38px', marginBottom: '2rem' }} />}>
+        <MangaSourceTabs />
+      </Suspense>
+
       <Section label="MOST POPULAR" accent="var(--paper)">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-          {popular.map(m => <MangaCard key={m.id} manga={m} />)}
-        </div>
+        <Grid items={popular} />
       </Section>
 
       <Section label="LATEST UPDATES" accent="var(--red)">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-          {latest.map(m => <MangaCard key={m.id} manga={m} />)}
-        </div>
+        <Grid items={latest} />
       </Section>
 
-      {mkTrending.length > 0 && (
-        <Section label="TRENDING ON MANGAKAKALOT" accent="var(--lime)">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-            {mkTrending.map(m => <MHCard key={m.id} manga={m} />)}
-            </div>
+      {trendingLabel && trending.length > 0 && (
+        <Section label={trendingLabel} accent="var(--lime)">
+          <Grid items={trending} />
         </Section>
       )}
     </div>

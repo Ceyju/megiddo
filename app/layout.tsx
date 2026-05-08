@@ -42,7 +42,7 @@ export default function RootLayout({
         <footer className="border-t border-[--border] py-8 mt-16">
           <div className="w-full mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-[--muted] text-xs font-body uppercase tracking-widest">
-              Powered by AniList &amp; Mangadex
+              Powered by AniList &amp; Kitsu
             </span>
           </div>
         </footer>

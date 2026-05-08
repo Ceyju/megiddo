@@ -3,40 +3,46 @@
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
-interface NyaaResult {
+interface TorrentioResult {
   title: string;
   magnet: string;
   seeders: number;
 }
 
 interface TorrentPlayerProps {
-  query: string;
+  imdbId: string | null;
+  episode: number;
   title?: string;
 }
 
 type Phase = "searching" | "ready" | "connecting" | "streaming" | "error";
 
-export default function TorrentPlayer({ query, title }: TorrentPlayerProps) {
+export default function TorrentPlayer({ imdbId, episode, title }: TorrentPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const clientRef = useRef<unknown>(null);
 
-  const [results, setResults] = useState<NyaaResult[]>([]);
+  const [results, setResults] = useState<TorrentioResult[]>([]);
   const [activeMagnet, setActiveMagnet] = useState<string | null>(null);
   const [wtLoaded, setWtLoaded] = useState(false);
   const [phase, setPhase] = useState<Phase>("searching");
   const [msg, setMsg] = useState("Searching torrent index...");
   const [dlPercent, setDlPercent] = useState(0);
 
-  // Fetch Nyaa results
+  // Fetch Torrentio results
   useEffect(() => {
+    if (!imdbId) {
+      setPhase("error");
+      setMsg("No IMDb ID available for this anime — torrent search unavailable.");
+      return;
+    }
     setPhase("searching");
     setMsg("Searching torrent index...");
-    fetch(`/api/nyaa?q=${encodeURIComponent(query)}`)
+    fetch(`/api/torrentio?imdb=${encodeURIComponent(imdbId)}&season=1&episode=${episode}`)
       .then((r) => r.json())
       .then((data) => {
         if (!data.items?.length) {
           setPhase("error");
-          setMsg("No results found on Nyaa.si for this episode.");
+          setMsg("No results found on Torrentio for this episode.");
           return;
         }
         setResults(data.items);
@@ -48,9 +54,9 @@ export default function TorrentPlayer({ query, title }: TorrentPlayerProps) {
         setPhase("error");
         setMsg("Could not reach torrent index.");
       });
-  }, [query]);
+  }, [imdbId, episode]);
 
-  // Start streaming when both Nyaa result and WebTorrent are available
+  // Start streaming when both Torrentio result and WebTorrent are available
   useEffect(() => {
     if (wtLoaded && activeMagnet && phase === "ready") {
       startStream(activeMagnet);

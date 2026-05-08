@@ -21,11 +21,12 @@ interface VideoPlayerProps {
   title?: string;
   iframeSrc?: string;
   iframeProviders?: IframeProvider[];
-  torrentQuery?: string;
+  torrentImdbId?: string | null;
+  torrentEpisode?: number;
   streamingLinks?: StreamingLink[];
 }
 
-export default function VideoPlayer({ sources, title, iframeSrc, iframeProviders, torrentQuery, streamingLinks }: VideoPlayerProps) {
+export default function VideoPlayer({ sources, title, iframeSrc, iframeProviders, torrentImdbId, torrentEpisode, streamingLinks }: VideoPlayerProps) {
   const providers: IframeProvider[] = iframeProviders?.length
     ? iframeProviders
     : iframeSrc
@@ -33,22 +34,23 @@ export default function VideoPlayer({ sources, title, iframeSrc, iframeProviders
     : [];
 
   // Show IframePlayer if we have iframe providers, torrent fallback, or streaming links
-  if (providers.length > 0 || torrentQuery || streamingLinks?.length) {
-    return <IframePlayer providers={providers} title={title} torrentQuery={torrentQuery} streamingLinks={streamingLinks ?? []} />;
+  if (providers.length > 0 || torrentImdbId || streamingLinks?.length) {
+    return <IframePlayer providers={providers} title={title} torrentImdbId={torrentImdbId} torrentEpisode={torrentEpisode} streamingLinks={streamingLinks ?? []} />;
   }
   return <HlsPlayer sources={sources ?? []} title={title} />;
 }
 
-function IframePlayer({ providers, title, torrentQuery, streamingLinks }: {
+function IframePlayer({ providers, title, torrentImdbId, torrentEpisode, streamingLinks }: {
   providers: IframeProvider[];
   title?: string;
-  torrentQuery?: string;
+  torrentImdbId?: string | null;
+  torrentEpisode?: number;
   streamingLinks: StreamingLink[];
 }) {
   const [active, setActive] = useState(0);
   const OFFICIAL_IDX = providers.length;
   const TORRENT_IDX = providers.length + (streamingLinks.length > 0 ? 1 : 0);
-  const hasTorrent = Boolean(torrentQuery);
+  const hasTorrent = Boolean(torrentImdbId);
   const hasOfficial = streamingLinks.length > 0;
   const isTorrentActive = hasTorrent && active === TORRENT_IDX;
   const isOfficialActive = hasOfficial && active === OFFICIAL_IDX;
@@ -128,8 +130,8 @@ function IframePlayer({ providers, title, torrentQuery, streamingLinks }: {
           </p>
         </div>
       )}
-      {isTorrentActive && torrentQuery && (
-        <TorrentPlayer query={torrentQuery} title={title} />
+      {isTorrentActive && torrentImdbId && (
+        <TorrentPlayer imdbId={torrentImdbId} episode={torrentEpisode ?? 1} title={title} />
       )}
     </div>
   );

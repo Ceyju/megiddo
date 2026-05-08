@@ -8,13 +8,16 @@ import { getAnimeTitle } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ animeId: string; episodeId: string }>;
+  searchParams: Promise<{ season?: string }>;
 }
 
 export const revalidate = 3600;
 
-export default async function WatchPage({ params }: Props) {
+export default async function WatchPage({ params, searchParams }: Props) {
   const { animeId, episodeId: rawEpisodeId } = await params;
+  const { season: rawSeason } = await searchParams;
   const episodeNumber = Number(rawEpisodeId) || 1;
+  const seasonNumber = Number(rawSeason) || 1;
   const anilistId = Number(animeId);
 
   const animeData = await getAnimeById(anilistId).catch(() => null);
@@ -70,7 +73,7 @@ export default async function WatchPage({ params }: Props) {
 
   const iframeProviders: IframeProvider[] = [
     { label: "Videasy", src: `https://player.videasy.net/anime/${anilistId}/${episodeNumber}` },
-    { label: "VidFast", src: `https://vidfast.pro/tv/${imdbId}/1/${episodeNumber}?autoPlay=true` },
+    { label: "VidFast", src: `https://vidfast.pro/tv/${imdbId}/${seasonNumber}/${episodeNumber}?autoPlay=true` },
   ];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
@@ -93,9 +96,6 @@ export default async function WatchPage({ params }: Props) {
   //   }
   // }
   const streamingLinks: StreamingLink[] = [];
-
-  const baseTitle = title.replace(/\s+season\s*\d+/i, '').replace(/\s+part\s*\d+/i, '').trim();
-  const torrentQuery = `${baseTitle} ${String(episodeNumber).padStart(2, '0')}`;
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
@@ -122,7 +122,8 @@ export default async function WatchPage({ params }: Props) {
           <VideoPlayer
               iframeProviders={iframeProviders}
               title={title + (currentEpisode ? ' — Episode ' + currentEpisode.number : '')}
-              torrentQuery={torrentQuery}
+              torrentImdbId={imdbId}
+              torrentEpisode={episodeNumber}
               streamingLinks={streamingLinks}
             />
 

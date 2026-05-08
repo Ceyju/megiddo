@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.mkklcdnv6temp.com" },
       { protocol: "https", hostname: "cm.blazefast.co" },
       { protocol: "https", hostname: "avt.mkklcdnv6temp.com" },
+      { protocol: "https", hostname: "**.comix.to" },
+      { protocol: "https", hostname: "comix.to" },
+      { protocol: "https", hostname: "gomanga-api.vercel.app" },
+      { protocol: "https", hostname: "**.2xstorage.com" },
     ],
   },
 };
