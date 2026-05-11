@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 
@@ -11,13 +11,18 @@ export default function Navbar() {
   const [focused, setFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const pathname = usePathname();
+  const isManga = pathname.startsWith("/manga");
+  const searchPlaceholder = isManga ? "Search manga..." : "Search anime...";
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = query.trim();
     if (q) {
-      router.push(`/search?q=${encodeURIComponent(q)}`);
-      setQuery("");
-      setFocused(false);
+      router.push(isManga
+        ? `/manga/search?q=${encodeURIComponent(q)}`
+        : `/search?q=${encodeURIComponent(q)}`
+      );
     }
   }
 
@@ -111,7 +116,7 @@ export default function Navbar() {
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Search anime..."
+              placeholder={searchPlaceholder}
               style={{
                 background: "transparent",
                 border: "none",

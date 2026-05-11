@@ -5,6 +5,7 @@ import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/a
 import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
 import MangaSourceTabs from '@/components/MangaSourceTabs';
+import MangaHeroCarousel from '@/components/MangaHeroCarousel';
 
 export const revalidate = 600;
 
@@ -30,7 +31,6 @@ async function fetchBySource(source: string): Promise<SourceData> {
       return { popular, latest, trending, trendingLabel: 'TOP RATED' };
     }
     case 'anilist': {
-      // AniList catalogue — chapters + images served via MangaDex
       const [popular, latest, trending] = await Promise.all([
         getPopularMangaAL(20),
         getLatestMangaAL(20),
@@ -39,7 +39,6 @@ async function fetchBySource(source: string): Promise<SourceData> {
       return { popular, latest, trending, trendingLabel: 'TRENDING' };
     }
     default: {
-      // mangadex
       const [popular, latest, trending] = await Promise.all([
         getPopularManga(24),
         getLatestManga(24),
@@ -51,28 +50,64 @@ async function fetchBySource(source: string): Promise<SourceData> {
 }
 
 function cardHref(manga: MDManga): string {
-  // comix titles redirect to search since they don't have direct detail pages
   if (manga.id.startsWith('comix:')) {
     return `/manga/search?q=${encodeURIComponent(manga.title)}`;
   }
   return `/manga/${encodeURIComponent(manga.id)}`;
 }
 
+const GENRE_TAGS = [
+  'ACTION', 'ROMANCE', 'ISEKAI', 'FANTASY', 'THRILLER', 'HORROR',
+  'SLICE OF LIFE', 'SHOUNEN', 'SEINEN', 'PSYCHOLOGICAL', 'ADVENTURE',
+  'COMEDY', 'DRAMA', 'SUPERNATURAL', 'SCI-FI', 'MYSTERY', 'SPORTS', 'MARTIAL ARTS',
+  'ACTION', 'ROMANCE', 'ISEKAI', 'FANTASY', 'THRILLER', 'HORROR',
+  'SLICE OF LIFE', 'SHOUNEN', 'SEINEN', 'PSYCHOLOGICAL', 'ADVENTURE',
+  'COMEDY', 'DRAMA', 'SUPERNATURAL', 'SCI-FI', 'MYSTERY', 'SPORTS', 'MARTIAL ARTS',
+];
+
 function Section({
   label,
   accent,
+  number,
   children,
 }: {
   label: string;
   accent?: string;
+  number: string;
   children: React.ReactNode;
 }) {
   return (
-    <section style={{ marginBottom: '3rem' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', letterSpacing: '0.08em', color: accent ?? 'var(--paper)', lineHeight: 1 }}>
-          {label}
-        </h2>
+    <section style={{ marginBottom: '4rem', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', marginBottom: '1.75rem' }}>
+        <span
+          aria-hidden
+          style={{
+            fontFamily: 'var(--font-display, Impact)',
+            fontSize: 'clamp(4rem, 8vw, 6rem)',
+            lineHeight: 0.8,
+            color: 'var(--surface-2)',
+            letterSpacing: '0.02em',
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          {number}
+        </span>
+        <div style={{ flex: 1, paddingBottom: '0.55rem' }}>
+          <div style={{ width: '100%', height: '1px', background: accent ?? 'var(--border)', marginBottom: '7px' }} />
+          <h2
+            style={{
+              fontFamily: 'var(--font-condensed, Arial)',
+              fontSize: '0.72rem',
+              letterSpacing: '0.22em',
+              color: accent ?? 'var(--paper)',
+              textTransform: 'uppercase',
+              margin: 0,
+            }}
+          >
+            {label}
+          </h2>
+        </div>
       </div>
       {children}
     </section>
@@ -89,7 +124,11 @@ function Grid({ items }: { items: MDManga[] }) {
   }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-      {items.map((m, i) => <MangaCard key={m.id} manga={m} href={cardHref(m)} priority={i === 0} />)}
+      {items.map((m, i) => (
+        <div key={m.id} className="card-reveal" style={{ animationDelay: `${0.04 + i * 0.025}s` }}>
+          <MangaCard manga={m} href={cardHref(m)} priority={i === 0} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -97,7 +136,7 @@ function Grid({ items }: { items: MDManga[] }) {
 const SOURCE_LABELS: Record<string, string> = {
   mangadex: 'MangaDex',
   kitsu: 'GoManga',
-  anilist: 'MangaDex',
+  anilist: 'AniList',
 };
 
 const VALID_SOURCES = ['mangadex', 'kitsu', 'anilist'];
@@ -111,48 +150,60 @@ export default async function MangaPage({ searchParams }: Props) {
   const { popular, latest, trending, trendingLabel } = await fetchBySource(source);
 
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
+    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 0 4rem' }}>
 
-      {/* Header */}
-      <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '2rem' }}>
-        <h1 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '0.06em', color: 'var(--paper)', lineHeight: 1 }}>
-          MANGA <span style={{ color: 'var(--red)' }}>|</span> MANHUA <span style={{ color: 'var(--red)' }}>|</span> MANHWA
-        </h1>
-        <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase', marginTop: '4px' }}>
-          Source: {SOURCE_LABELS[source]} — Free, ad-free, community-driven
-        </p>
+      {/* ── Hero Carousel ────────────────────────────────────── */}
+      <MangaHeroCarousel items={popular.slice(0, 8)} />
+
+      {/* ── Genre Ticker ─────────────────────────────────────── */}
+      <div
+        className="overflow-hidden py-3 border-y"
+        style={{ borderColor: 'var(--border)', background: 'var(--ink-2)', marginBottom: '2.25rem' }}
+      >
+        <div className="marquee-inner">
+          {GENRE_TAGS.map((g, i) => (
+            <span
+              key={i}
+              style={{
+                fontFamily: 'var(--font-condensed, Arial)',
+                fontSize: '0.65rem',
+                letterSpacing: '0.16em',
+                color: 'var(--muted)',
+                padding: '0 20px',
+                whiteSpace: 'nowrap',
+                textTransform: 'uppercase',
+              }}
+            >
+              {g}
+              <span style={{ color: 'var(--red)', marginLeft: '20px' }}>·</span>
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Search */}
-      <form action="/manga/search" method="get" style={{ marginBottom: '2rem', display: 'flex', gap: '8px', maxWidth: '520px' }}>
-        <input
-          name="q"
-          placeholder="Search manga, manhwa, manhua..."
-          style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--paper)', fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.85rem', padding: '8px 14px', outline: 'none' }}
-        />
-        <button type="submit" style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '8px 18px', background: 'var(--red)', border: '1px solid var(--red)', color: 'var(--paper)', cursor: 'pointer' }}>
-          SEARCH
-        </button>
-      </form>
+      {/* ── Source Tabs ─────────────────────────────────────── */}
+      <div style={{ padding: '0 1.5rem', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
+        <Suspense fallback={<div style={{ height: '34px' }} />}>
+          <MangaSourceTabs />
+        </Suspense>
+      </div>
 
-      {/* Source tabs */}
-      <Suspense fallback={<div style={{ height: '38px', marginBottom: '2rem' }} />}>
-        <MangaSourceTabs />
-      </Suspense>
-
-      <Section label="MOST POPULAR" accent="var(--paper)">
+      {/* ── Sections ─────────────────────────────────────────── */}
+      <div style={{ padding: '0 1.5rem' }}>
+      <Section label="MOST POPULAR" accent="var(--paper)" number="01">
         <Grid items={popular} />
       </Section>
 
-      <Section label="LATEST UPDATES" accent="var(--red)">
+      <Section label="LATEST UPDATES" accent="var(--red)" number="02">
         <Grid items={latest} />
       </Section>
 
       {trendingLabel && trending.length > 0 && (
-        <Section label={trendingLabel} accent="var(--lime)">
+        <Section label={trendingLabel} accent="var(--lime)" number="03">
           <Grid items={trending} />
         </Section>
       )}
+      </div>
     </div>
   );
 }
