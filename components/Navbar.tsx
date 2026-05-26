@@ -13,17 +13,18 @@ export default function Navbar() {
 
   const pathname = usePathname();
   const isManga = pathname.startsWith("/manga");
-  const searchPlaceholder = isManga ? "Search manga..." : "Search anime...";
+  const isNovels = pathname.startsWith("/webnovels");
+  const searchPlaceholder = isManga ? "Search manga..." : isNovels ? "Search webnovels..." : "Search anime...";
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = query.trim();
-    if (q) {
-      router.push(isManga
-        ? `/manga/search?q=${encodeURIComponent(q)}`
-        : `/search?q=${encodeURIComponent(q)}`
-      );
-    }
+    if (!q) return;
+    if (isManga) router.push(`/manga/search?q=${encodeURIComponent(q)}`);
+    else if (isNovels) router.push(`/webnovels?q=${encodeURIComponent(q)}`);
+    else router.push(`/search?q=${encodeURIComponent(q)}`);
+    setQuery("");
+    setFocused(false);
   }
 
   return (
@@ -69,8 +70,8 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-7 ml-2">
           {[
             { href: "/", label: "ANIME" },
-            // { href: "/search", label: "BROWSE" },
-            { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANWHA" },
+            { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANHWA" },
+            { href: "/webnovels", label: "NOVELS" },
           ].map(({ href, label }) => (
             <Link
               key={href}
@@ -157,7 +158,8 @@ export default function Navbar() {
         >
           {[
             { href: "/", label: "HOME" },
-            { href: "/search", label: "BROWSE" },
+            { href: "/manga?source=anilist", label: "MANGA" },
+            { href: "/webnovels", label: "NOVELS" },
           ].map(({ href, label }) => (
             <Link
               key={href}

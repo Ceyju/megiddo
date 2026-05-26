@@ -150,7 +150,7 @@ export default async function MangaPage({ searchParams }: Props) {
   const { popular, latest, trending, trendingLabel } = await fetchBySource(source);
 
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 0 4rem' }}>
+    <div style={{ maxWidth: '2000px', margin: '0 auto', padding: '0 0 4rem' }}>
 
       {/* ── Hero Carousel ────────────────────────────────────── */}
       <MangaHeroCarousel items={popular.slice(0, 8)} />
