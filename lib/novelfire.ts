@@ -12,7 +12,7 @@ export async function nfFetch(path: string): Promise<string | null> {
     const res = await fetch(`${NF_BASE}${path}`, {
       headers: FETCH_HEADERS,
       next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;
     return res.text();

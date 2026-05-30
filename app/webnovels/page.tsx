@@ -231,8 +231,8 @@ export default async function WebNovelsPage() {
 
       <div style={{ padding: '0 1.5rem' }}>
 
-        {/* ── 01 · Recommends ─────────────────────────────── */}
-        <Section label="Recommends" accent="var(--paper)" number="01">
+        {/* ── 01 · Recommendations ─────────────────────────────── */}
+        <Section label="Recommendations" accent="var(--paper)" number="01">
           <Suspense fallback={<div style={{ height: '280px' }} />}>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
               {popular.slice(0, 12).map((n, i) => (
