@@ -80,7 +80,7 @@ export default function NovelHeroCarousel({ items }: { items: NFListNovel[] }) {
       {prevItem?.coverUrl && (
         <div key={`bg-prev-${prev}`} style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0 }}>
           <Image src={prevItem.coverUrl} alt="" fill unoptimized sizes="100vw"
-            style={{ objectFit: 'cover', filter: 'blur(32px) saturate(1.2)', transform: 'scale(1.12)' }} />
+            style={{ objectFit: 'cover', filter: 'blur(4px) saturate(1.2)', transform: 'scale(1.12)' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(11,10,8,0.72)' }} />
         </div>
       )}
@@ -89,7 +89,7 @@ export default function NovelHeroCarousel({ items }: { items: NFListNovel[] }) {
       {item.coverUrl && (
         <div key={`bg-${current}`} style={{ position: 'absolute', inset: 0, zIndex: 1, animation: 'nvBgIn 0.7s ease both' }}>
           <Image src={item.coverUrl} alt="" fill unoptimized sizes="100vw"
-            style={{ objectFit: 'cover', filter: 'blur(28px) saturate(1.3)', transform: 'scale(1.12)' }} />
+            style={{ objectFit: 'cover', filter: 'blur(4px) saturate(1.3)', transform: 'scale(1.12)' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(11,10,8,0.70)' }} />
         </div>
       )}
