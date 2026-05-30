@@ -72,8 +72,3 @@ export async function getEpisodeSources(
   const url = `${BASE_URL}/anime/${PROVIDER}/watch/${encodeURIComponent(episodeId)}`;
   return consumetFetch<ConsumetStreamData>(url);
 }
-
-// Legacy stubs
-export async function findConsumetId(): Promise<null> { return null; }
-export async function getConsumetAnimeInfo(): Promise<null> { return null; }
-export async function searchConsumet(): Promise<null> { return null; }

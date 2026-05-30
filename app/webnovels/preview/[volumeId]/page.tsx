@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getGBVolumeById } from '@/lib/googlebooks';
+import { parseNovel } from '@/lib/novelfire';
 import NovelFirePanel from '@/components/NovelFirePanel';
 
 function titleToNFSlug(title: string): string {
@@ -37,6 +38,9 @@ export default async function PreviewPage({ params }: Props) {
 
   const year = vol.publishedDate?.slice(0, 4) ?? null;
   const nfSlug = titleToNFSlug(vol.title);
+  const nfNovel = await parseNovel(nfSlug);
+  const coverUrl = nfNovel?.coverUrl ?? null;
+  console.log('[preview] slug:', nfSlug, '| nfNovel:', nfNovel ? 'found' : 'null', '| coverUrl:', coverUrl);
 
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '0 0 5rem' }}>
@@ -61,10 +65,10 @@ export default async function PreviewPage({ params }: Props) {
         {/* ── Sidebar ── */}
         <aside style={{ borderRight: '1px solid var(--border)', padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Cover */}
-          {vol.coverUrl && (
+          {coverUrl ? (
             <div style={{ width: '100%', aspectRatio: '2/3', position: 'relative', border: '1px solid var(--border)' }}>
               <Image
-                src={vol.coverUrl}
+                src={coverUrl}
                 alt={vol.title}
                 fill
                 unoptimized
@@ -72,6 +76,10 @@ export default async function PreviewPage({ params }: Props) {
                 style={{ objectFit: 'cover' }}
                 priority
               />
+            </div>
+          ) : (
+            <div style={{ width: '100%', aspectRatio: '2/3', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.6rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>No Cover</span>
             </div>
           )}
 

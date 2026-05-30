@@ -120,13 +120,19 @@ export async function parseNovel(slug: string): Promise<NFNovel | null> {
 
   const rawCoverUrl =
     extractMeta(html, 'og:image') ??
-    html.match(/class="book-img[^"]*"[^>]*>\s*<img[^>]+src="([^"]+)"/)?.[1] ??
     html.match(/class="book-img[^"]*"[^>]*>\s*<img[^>]+data-src="([^"]+)"/)?.[1] ??
+    html.match(/class="book-img[^"]*"[^>]*>\s*<img[^>]+src="([^"]+)"/)?.[1] ??
+    html.match(/<img[^>]+class="[^"]*cover[^"]*"[^>]+data-src="([^"]+)"/i)?.[1] ??
     html.match(/<img[^>]+class="[^"]*cover[^"]*"[^>]+src="([^"]+)"/i)?.[1] ??
+    html.match(/<img[^>]+data-src="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i)?.[1] ??
     html.match(/<img[^>]+src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i)?.[1] ??
     null;
-  // Always serve images over HTTPS so the browser doesn't block mixed content
-  const coverUrl = rawCoverUrl?.replace(/^http:\/\//, 'https://') ?? null;
+  // Resolve relative paths (e.g. /server-1/slug.jpg) and enforce HTTPS
+  const coverUrl = rawCoverUrl
+    ? (rawCoverUrl.startsWith('/')
+        ? `${NF_BASE}${rawCoverUrl}`.replace(/^http:\/\//, 'https://')
+        : rawCoverUrl.replace(/^http:\/\//, 'https://'))
+    : null;
 
   const description =
     extractMeta(html, 'og:description') ??
@@ -233,8 +239,6 @@ export async function parseChapterContent(
   const chapterNumber = numMatch?.[1] ?? null;
 
   // Truncate at reliable end-of-content markers only.
-  // "Novel Ranking" is intentionally excluded — it appears in sidebars
-  // that are rendered BEFORE the chapter content in the HTML source.
   const footerIdx = html.search(
     /Tip:\s+You can use|class="chapter-comments|id="footer[^a-z]|class="footer[^a-z]/i,
   );
@@ -370,9 +374,16 @@ function parseNovelListHtml(html: string, limit = 20): NFListNovel[] {
     const title = stripTags(titleMatch[1]).trim();
     if (title.length < 2) continue;
 
-    const coverMatch =
-      ctx.match(/src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)(?:\?[^"]{0,80})?)"/i) ??
-      ctx.match(/data-src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+    // data-src may be a relative path like /server-1/slug.jpg
+    const coverRaw =
+      ctx.match(/data-src="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i)?.[1] ??
+      ctx.match(/src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)(?:\?[^"]{0,80})?)"/i)?.[1] ??
+      null;
+    const coverUrl = coverRaw
+      ? (coverRaw.startsWith('/')
+          ? `${NF_BASE}${coverRaw}`.replace(/^http:\/\//, 'https://')
+          : coverRaw.replace(/^http:\/\//, 'https://'))
+      : null;
 
     const statusMatch = ctx.match(/\b(Ongoing|Completed|Hiatus)\b/i);
     const chapMatch   = ctx.match(/[Cc]hapter[-\s]+(\d+(?:\.\d+)?)/);
@@ -387,7 +398,7 @@ function parseNovelListHtml(html: string, limit = 20): NFListNovel[] {
     webnovels.push({
       slug,
       title,
-      coverUrl: coverMatch?.[1] ?? null,
+      coverUrl,
       status: statusMatch?.[1] ?? null,
       genres,
       latestChapter: chapMatch ? `Chapter ${chapMatch[1]}` : null,
