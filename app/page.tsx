@@ -1,5 +1,5 @@
 import { getTrending, getPopular, getSeasonalAnime, getCurrentSeason } from "@/lib/anilist";
-import HeroBanner from "@/components/HeroBanner";
+import AnimeHeroCarousel from "@/components/AnimeHeroCarousel";
 import AnimeGrid from "@/components/AnimeGrid";
 
 export const revalidate = 3600;
@@ -28,7 +28,7 @@ export default async function HomePage() {
   return (
     <main>
       {/* Hero */}
-      {hero && <HeroBanner anime={hero} />}
+      <AnimeHeroCarousel items={trending.media.slice(0, 8)} />
 
       {/* Scrolling genre strip */}
       <div
