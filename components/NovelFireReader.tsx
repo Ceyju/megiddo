@@ -78,8 +78,6 @@ interface Props {
   onProgress?: (p: ReadingProgress) => void;
 }
 
-type ThemeKey = keyof typeof THEMES;
-
 export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onProgress }: Props) {
   const paragraphRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const progressRef = useRef(0);
@@ -88,25 +86,27 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
   const [settings, setSettings] = useState<ReaderSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [currentProgress, setCurrentProgress] = useState(0);
-  const [restored, setRestored] = useState(false);
-
-  useEffect(() => { setSettings(loadSettings()); }, []);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
-    if (restored) return;
+    const request = window.setTimeout(() => setSettings(loadSettings()), 0);
+    return () => window.clearTimeout(request);
+  }, []);
+
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
     const saved = loadProgress(novelSlug, chapterSlug);
     if (saved?.scrollY) {
       requestAnimationFrame(() => {
         window.scrollTo({ top: saved.scrollY, behavior: 'instant' });
         setCurrentProgress(saved.progressPercent);
         progressRef.current = saved.progressPercent;
-        setRestored(true);
       });
     } else {
       window.scrollTo({ top: 0 });
-      setRestored(true);
     }
-  }, [novelSlug, chapterSlug, restored]);
+  }, [novelSlug, chapterSlug]);
 
   useEffect(() => {
     const paras = paragraphRefs.current.filter(Boolean) as HTMLParagraphElement[];
@@ -116,7 +116,8 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
     const observer = new IntersectionObserver((entries) => {
       for (const e of entries) {
         const idx = parseInt(e.target.getAttribute('data-idx') ?? '0');
-        e.isIntersecting ? visible.add(idx) : visible.delete(idx);
+        if (e.isIntersecting) visible.add(idx);
+        else visible.delete(idx);
       }
       const max = visible.size ? Math.max(...visible) : 0;
       const pct = Math.round((max / Math.max(paras.length - 1, 1)) * 100);

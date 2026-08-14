@@ -6,6 +6,7 @@ import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
 import MangaSourceTabs from '@/components/MangaSourceTabs';
 import MangaHeroCarousel from '@/components/MangaHeroCarousel';
+import MediaCardGrid from '@/components/MediaCardGrid';
 
 export const revalidate = 600;
 
@@ -123,21 +124,13 @@ function Grid({ items }: { items: MDManga[] }) {
     );
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
+    <MediaCardGrid>
       {items.map((m, i) => (
-        <div key={m.id} className="card-reveal" style={{ animationDelay: `${0.04 + i * 0.025}s` }}>
-          <MangaCard manga={m} href={cardHref(m)} priority={i === 0} />
-        </div>
+        <MangaCard key={m.id} manga={m} href={cardHref(m)} priority={i === 0} />
       ))}
-    </div>
+    </MediaCardGrid>
   );
 }
-
-const SOURCE_LABELS: Record<string, string> = {
-  mangadex: 'MangaDex',
-  kitsu: 'GoManga',
-  anilist: 'AniList',
-};
 
 const VALID_SOURCES = ['mangadex', 'kitsu', 'anilist'];
 

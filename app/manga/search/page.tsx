@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { searchManga } from '@/lib/mangadex';
+import MangaCard from '@/components/MangaCard';
+import MediaCardGrid from '@/components/MediaCardGrid';
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -110,34 +111,11 @@ export default async function MangaSearchPage({ searchParams }: Props) {
 
       {/* ── Results Grid ─────────────────────────────────────── */}
       {merged.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-          {merged.map((m, i) => {
-            const typeLabel = m.type === 'manhwa' ? 'MANHWA' : m.type === 'manhua' ? 'MANHUA' : 'MANGA';
-            const typeColor = m.type === 'manhwa' ? 'var(--lime)' : m.type === 'manhua' ? '#FF8800' : 'var(--red)';
-            return (
-              <div key={m.id} className="card-reveal" style={{ animationDelay: `${0.04 + i * 0.03}s` }}>
-                <Link href={`/manga/${m.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-                  <div style={{ position: 'relative', aspectRatio: '2/3', overflow: 'hidden', background: 'var(--surface)', marginBottom: '0.5rem' }}>
-                    {m.coverUrl ? (
-                      <Image src={m.coverUrl} alt={m.title} fill sizes="160px" style={{ objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '2rem', color: 'var(--border-2)' }}>?</span>
-                      </div>
-                    )}
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(to top, rgba(11,10,8,0.8) 0%, transparent 100%)', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', top: '6px', left: '6px', padding: '2px 7px', background: typeColor, fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.5rem', letterSpacing: '0.12em', color: typeColor === 'var(--lime)' ? 'var(--ink)' : 'var(--paper)', textTransform: 'uppercase' }}>
-                      {typeLabel}
-                    </div>
-                  </div>
-                  <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.72rem', letterSpacing: '0.05em', color: 'var(--paper)', textTransform: 'uppercase', lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {m.title}
-                  </p>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+        <MediaCardGrid>
+          {merged.map((m, i) => (
+            <MangaCard key={m.id} manga={m} href={`/manga/${encodeURIComponent(m.id)}`} priority={i === 0} />
+          ))}
+        </MediaCardGrid>
       ) : query ? (
         <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.85rem', color: 'var(--muted)' }}>No results found.</p>
       ) : null}

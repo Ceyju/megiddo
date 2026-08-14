@@ -1,23 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { parseChapterContent } from '@/lib/novelfire';
+import { NextRequest, NextResponse } from "next/server";
+import { parseChapterContent } from "@/lib/novelfire";
+import { apiError, ValidationError } from "@/lib/server/api";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/server/rate-limit";
+import { chapterSlug, slug as validSlug } from "@/lib/server/validation";
 
 export async function GET(req: NextRequest) {
-  const slug = req.nextUrl.searchParams.get('slug');
-  const ch = req.nextUrl.searchParams.get('ch');
-
-  if (!slug || !ch)
-    return NextResponse.json({ error: 'slug and ch required' }, { status: 400 });
-  if (!/^[a-z0-9-]{1,80}$/.test(slug))
-    return NextResponse.json({ error: 'invalid slug' }, { status: 400 });
-  if (!/^chapter-\d+$/.test(ch))
-    return NextResponse.json({ error: 'invalid chapter id' }, { status: 400 });
-
   try {
-    const data = await parseChapterContent(slug, ch);
-    return NextResponse.json(data, {
-      headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=7200' },
-    });
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch chapter' }, { status: 502 });
+    const rate = await checkRateLimit(req, "novel");
+    const headers = rateLimitHeaders(rate);
+    if (!rate.allowed) return apiError("RATE_LIMITED", "Too many chapter requests", 429, headers);
+    const slug = validSlug(req.nextUrl.searchParams.get("slug"));
+    const chapter = chapterSlug(req.nextUrl.searchParams.get("ch"));
+    const data = await parseChapterContent(slug, chapter);
+    if (!data) return apiError("NOT_FOUND", "Chapter not found", 404, headers);
+    headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=7200");
+    return NextResponse.json(data, { headers });
+  } catch (error) {
+    if (error instanceof ValidationError) return apiError(error.code, error.message, 400);
+    return apiError("UPSTREAM_FAILURE", "Failed to fetch chapter", 502);
   }
 }

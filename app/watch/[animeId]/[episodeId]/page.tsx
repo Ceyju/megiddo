@@ -41,7 +41,6 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   // SIMKL ID lookup: AniList ID → IMDb ID + TVDb ID (cached 24h)
   let imdbId: string | null = null;
-  let tvdbId: number | null = null;
   const simklClientId = process.env.SIMKL_CLIENT_ID;
   if (simklClientId) {
     try {
@@ -62,7 +61,6 @@ export default async function WatchPage({ params, searchParams }: Props) {
           if (detailRes.ok) {
             const detail: { ids?: { imdb?: string; tvdb?: number } } = await detailRes.json();
             if (detail.ids?.imdb) imdbId = detail.ids.imdb;
-            if (detail.ids?.tvdb) tvdbId = detail.ids.tvdb;
           }
         }
       }
@@ -71,10 +69,10 @@ export default async function WatchPage({ params, searchParams }: Props) {
     }
   }
 
-  const iframeProviders: IframeProvider[] = [
-    { label: "Videasy", src: `https://player.videasy.net/anime/${anilistId}/${episodeNumber}` },
-    { label: "VidFast", src: `https://vidfast.pro/tv/${imdbId}/${seasonNumber}/${episodeNumber}?autoPlay=true` },
-  ];
+  const vidfastImdbId = imdbId && /^tt\d{7,10}$/.test(imdbId) ? imdbId : null;
+  const iframeProviders: IframeProvider[] = vidfastImdbId
+    ? [{ label: "VidFast", src: `https://vidfast.pro/tv/${vidfastImdbId}/${seasonNumber}/${episodeNumber}?autoPlay=true` }]
+    : [];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
   // let streamingLinks: StreamingLink[] = [];
@@ -122,8 +120,6 @@ export default async function WatchPage({ params, searchParams }: Props) {
           <VideoPlayer
               iframeProviders={iframeProviders}
               title={title + (currentEpisode ? ' — Episode ' + currentEpisode.number : '')}
-              torrentImdbId={imdbId}
-              torrentEpisode={episodeNumber}
               streamingLinks={streamingLinks}
             />
 

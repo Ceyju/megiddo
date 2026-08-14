@@ -1,4 +1,7 @@
-const NF_BASE = process.env.NOVELFIRE_API_BASE ?? '';
+import { serverBaseUrl } from '@/lib/server/env';
+import { outboundFetch } from '@/lib/server/outbound';
+
+const NF_BASE = serverBaseUrl('NOVELFIRE_API_BASE') ?? '';
 
 const FETCH_HEADERS: HeadersInit = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -8,14 +11,15 @@ const FETCH_HEADERS: HeadersInit = {
 };
 
 export async function nfFetch(path: string): Promise<string | null> {
+  if (!NF_BASE) return null;
   try {
-    const res = await fetch(`${NF_BASE}${path}`, {
+    return await outboundFetch(`${NF_BASE}${path}`, {
+      allowedOrigins: [new URL(NF_BASE).origin],
+      expectedType: 'html',
+      maxBytes: 2_097_152,
       headers: FETCH_HEADERS,
       next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!res.ok) return null;
-    return res.text();
+    }) as string;
   } catch {
     return null;
   }

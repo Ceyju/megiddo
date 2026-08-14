@@ -1,5 +1,6 @@
 import AnimeCard from "@/components/AnimeCard";
 import type { AniListAnime } from "@/types";
+import MediaCardGrid from "@/components/MediaCardGrid";
 
 interface AnimeGridProps {
   title?: string;
@@ -44,11 +45,11 @@ export default function AnimeGrid({ title, anime }: AnimeGridProps) {
           </span>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+      <MediaCardGrid>
         {anime.map((a, i) => (
           <AnimeCard key={a.id} anime={a} index={i} />
         ))}
-      </div>
+      </MediaCardGrid>
     </section>
   );
 }

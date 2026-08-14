@@ -23,8 +23,6 @@ export default async function HomePage() {
     getSeasonalAnime(season, year, 1, 18),
   ]);
 
-  const hero = trending.media[0];
-
   return (
     <main>
       {/* Hero */}

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import type { ConsumetEpisode } from "@/types";
+import type { EpisodeRef } from "@/types";
 
 interface EpisodeListProps {
-  episodes: ConsumetEpisode[];
+  episodes: EpisodeRef[];
   anilistId: number;
   currentEpisodeId?: string;
 }

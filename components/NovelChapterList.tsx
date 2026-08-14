@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { NFNovelInfo, NFChapter } from '@/lib/novelfire';
 
 interface Props {
@@ -13,10 +14,10 @@ interface Props {
 
 export default function NovelChapterList({
   slug,
-  novel,
   initialChapters,
   initialTotalPages,
 }: Props) {
+  const router = useRouter();
   const [chapters, setChapters] = useState<NFChapter[]>(initialChapters);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
@@ -29,7 +30,7 @@ export default function NovelChapterList({
       setPageError(false);
       try {
         const res = await fetch(
-          `/api/novelfire?action=chapters&slug=${encodeURIComponent(slug)}&page=${page}`,
+          `/api/webnovel/chapters?slug=${encodeURIComponent(slug)}&page=${page}`,
         );
         if (!res.ok) throw new Error('fetch failed');
         const data = await res.json();
@@ -46,7 +47,7 @@ export default function NovelChapterList({
     [slug, totalPages],
   );
 
-  const PaginationBar = () => {
+  const renderPaginationBar = () => {
     if (totalPages <= 1) return null;
 
     const pages: (number | '…')[] = [];
@@ -149,7 +150,7 @@ export default function NovelChapterList({
             e.preventDefault();
             const val = (e.currentTarget.elements.namedItem('chNum') as HTMLInputElement).value;
             const num = parseInt(val);
-            if (num > 0) window.location.href = `/webnovels/${slug}/chapter-${num}`;
+            if (num > 0 && num <= 9999) router.push(`/webnovels/${slug}/chapter-${num}`);
           }}
           style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
         >
@@ -307,7 +308,7 @@ export default function NovelChapterList({
       </div>
 
       {/* ── Pagination ── */}
-      <PaginationBar />
+      {renderPaginationBar()}
     </div>
   );
 }

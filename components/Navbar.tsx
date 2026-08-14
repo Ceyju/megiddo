@@ -68,7 +68,7 @@ export default function Navbar() {
 
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-7 ml-2">
-          {[
+          {[ 
             { href: "/", label: "ANIME" },
             { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANHWA" },
             { href: "/webnovels", label: "NOVELS" },
@@ -76,20 +76,8 @@ export default function Navbar() {
             <Link
               key={href}
               href={href}
-              style={{
-                fontFamily: "var(--font-condensed, Arial)",
-                fontSize: "0.78rem",
-                letterSpacing: "0.12em",
-                color: "var(--paper-2)",
-                textDecoration: "none",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={(e) =>
-                ((e.target as HTMLElement).style.color = "var(--paper)")
-              }
-              onMouseLeave={(e) =>
-                ((e.target as HTMLElement).style.color = "var(--paper-2)")
-              }
+              className={`nav-link ${href === "/" ? (!isManga && !isNovels ? "is-active" : "") : pathname.startsWith(href.split("?")[0]) ? "is-active" : ""}`}
+              aria-current={href === "/" ? (!isManga && !isNovels ? "page" : undefined) : pathname.startsWith(href.split("?")[0]) ? "page" : undefined}
             >
               {label}
             </Link>
@@ -98,6 +86,7 @@ export default function Navbar() {
 
         {/* Search */}
         <form onSubmit={handleSearch} className="flex-1 max-w-sm ml-auto">
+          <label className="sr-only" htmlFor="site-search">{searchPlaceholder}</label>
           <div
             className="flex items-center gap-2 px-3 py-1.5"
             style={{
@@ -112,6 +101,7 @@ export default function Navbar() {
               className="w-3.5 h-3.5 shrink-0"
             />
             <input
+              id="site-search"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -132,6 +122,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setQuery("")}
+                aria-label="Clear search"
                 style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer" }}
               >
                 <X className="w-3 h-3" />
@@ -142,10 +133,12 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         <button
-          className="md:hidden"
+          className="mobile-menu-button md:hidden"
           onClick={() => setMenuOpen((v) => !v)}
           style={{ color: "var(--paper-2)", background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem" }}
           aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
         >
           {menuOpen ? "✕" : "≡"}
         </button>
@@ -153,6 +146,7 @@ export default function Navbar() {
 
       {menuOpen && (
         <div
+          id="mobile-navigation"
           className="md:hidden px-6 pb-5 pt-3 flex flex-col gap-4"
           style={{ background: "var(--ink-2)", borderBottom: "1px solid var(--border)" }}
         >
@@ -165,6 +159,7 @@ export default function Navbar() {
               key={href}
               href={href}
               onClick={() => setMenuOpen(false)}
+              aria-current={pathname.startsWith(href.split("?")[0]) ? "page" : undefined}
               style={{
                 fontFamily: "var(--font-display, Impact)",
                 fontSize: "1.25rem",

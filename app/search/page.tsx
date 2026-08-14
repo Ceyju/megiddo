@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AnimeCard from '@/components/AnimeCard';
+import MediaCardGrid from '@/components/MediaCardGrid';
 import type { AniListAnime } from '@/types';
 
 const GENRES = [
@@ -25,6 +26,7 @@ function SearchContent() {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [focused, setFocused] = useState(false);
+  const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 400);
@@ -33,28 +35,37 @@ function SearchContent() {
 
   const fetchResults = useCallback(
     async (q: string, genres: string[], pg: number, append: boolean) => {
+      requestRef.current?.abort();
+      const controller = new AbortController();
+      requestRef.current = controller;
       setLoading(true);
       try {
         const params = new URLSearchParams({ page: String(pg), perPage: '24' });
         if (q.trim()) params.set('q', q.trim());
         if (genres.length) params.set('genres', genres.join(','));
-        const res = await fetch('/api/search?' + params);
+        const res = await fetch('/api/search?' + params, { signal: controller.signal });
+        if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         setResults(prev => append ? [...prev, ...data.media] : data.media);
         setHasNextPage(data.pageInfo.hasNextPage);
-      } catch { setResults([]); } finally { setLoading(false); }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setResults([]);
+      } finally {
+        if (requestRef.current === controller) setLoading(false);
+      }
     }, []
   );
 
   useEffect(() => {
-    setPage(1);
-    fetchResults(debouncedQuery, selectedGenres, 1, false);
+    const request = window.setTimeout(() => fetchResults(debouncedQuery, selectedGenres, 1, false), 0);
     const params = new URLSearchParams();
     if (debouncedQuery) params.set('q', debouncedQuery);
     router.replace('/search?' + params, { scroll: false });
+    return () => window.clearTimeout(request);
   }, [debouncedQuery, selectedGenres, fetchResults, router]);
 
   function toggleGenre(g: string) {
+    setPage(1);
     setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   }
 
@@ -124,6 +135,10 @@ function SearchContent() {
       {/* Filter toggle */}
       <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <button
+          type='button'
+          onClick={() => setShowFilters(value => !value)}
+          aria-expanded={showFilters}
+          aria-controls='genre-filters'
           style={{
             fontFamily: 'var(--font-condensed, Arial)',
             fontSize: '0.68rem',
@@ -140,9 +155,11 @@ function SearchContent() {
           GENRES {selectedGenres.length > 0 ? '(' + selectedGenres.length + ')' : ''}
         </button>
         {selectedGenres.map(g => (
-          <span
+          <button
+            type='button'
             key={g}
             onClick={() => toggleGenre(g)}
+            aria-label={`Remove ${g} filter`}
             style={{
               fontFamily: 'var(--font-condensed, Arial)',
               fontSize: '0.63rem',
@@ -156,13 +173,13 @@ function SearchContent() {
             }}
           >
             {g} ✕
-          </span>
+          </button>
         ))}
       </div>
 
       {/* Genre grid */}
       {showFilters && (
-        <div style={{
+        <div id='genre-filters' style={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: '6px',
@@ -216,9 +233,9 @@ function SearchContent() {
           }}>
             {results.length} RESULTS{debouncedQuery ? ' FOR &ldquo;' + debouncedQuery + '&rdquo;' : ''}
           </div>
-          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4'>
+          <MediaCardGrid>
             {results.map((a, i) => <AnimeCard key={a.id} anime={a} index={i} />)}
-          </div>
+          </MediaCardGrid>
           {hasNextPage && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
               <button
@@ -247,12 +264,12 @@ function SearchContent() {
         </>
       ) : (debouncedQuery || selectedGenres.length > 0) ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '5rem 0', gap: '8px' }}>
-          <div style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '2rem', letterSpacing: '0.06em', color: 'var(--border-2)' }}>NO RESULTS</div>
+          <div style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '2rem', letterSpacing: '0.06em', color: 'var(--muted)' }}>NO RESULTS</div>
           <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.83rem', color: 'var(--muted)' }}>Try a different title or adjust your genre filters</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '5rem 0', gap: '8px' }}>
-          <div style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '3rem', letterSpacing: '0.06em', color: 'var(--border-2)', lineHeight: 1 }}>TYPE TO SEARCH</div>
+          <div style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '3rem', letterSpacing: '0.06em', color: 'var(--muted)', lineHeight: 1 }}>TYPE TO SEARCH</div>
           <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.83rem', color: 'var(--muted)' }}>or filter by genre above</p>
         </div>
       )}

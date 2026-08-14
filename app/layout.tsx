@@ -37,8 +37,9 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${sora.variable} ${barlowCondensed.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-[--ink] text-[--paper]">
+        <a className="skip-link" href="#main-content">Skip to main content</a>
         <Navbar />
-        <div className="flex-1">{children}</div>
+        <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div>
         <footer className="border-t border-[--border] py-8 mt-16">
           <div className="w-full mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-[--muted] text-xs font-body uppercase tracking-widest">

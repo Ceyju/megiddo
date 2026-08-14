@@ -27,7 +27,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
     setChapterContent(null);
     try {
       const res = await fetch(
-        `/api/novelfire?action=chapters&slug=${encodeURIComponent(targetSlug)}&page=${page}`,
+        `/api/webnovel/chapters?slug=${encodeURIComponent(targetSlug)}&page=${page}`,
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -43,7 +43,8 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
   }, []);
 
   useEffect(() => {
-    loadChapters(initialSlug);
+    const request = window.setTimeout(() => loadChapters(initialSlug), 0);
+    return () => window.clearTimeout(request);
   }, [initialSlug, loadChapters]);
 
   const openChapter = async (chSlug: string) => {
@@ -51,7 +52,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
     setChapterContent(null);
     try {
       const res = await fetch(
-        `/api/novelfire?action=chapter&slug=${encodeURIComponent(slug)}&chapter=${encodeURIComponent(chSlug)}`,
+        `/api/webnovel/chapter?slug=${encodeURIComponent(slug)}&ch=${encodeURIComponent(chSlug)}`,
       );
       if (!res.ok) throw new Error();
       const data: NFChapterContent = await res.json();

@@ -11,6 +11,7 @@ import {
 import NFNovelCard from '@/components/NovelReleaseCard';
 import NFRecommendCard from '@/components/NFRecommendCard';
 import NovelHeroCarousel from '@/components/NovelHeroCarousel';
+import MediaCardGrid from '@/components/MediaCardGrid';
 
 export const revalidate = 1800;
 
@@ -176,15 +177,11 @@ function RankingColumn({
 function NovelGrid({ novels }: { novels: NFListNovel[] }) {
   if (!novels.length) return null;
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-      gap: '1.25rem 0.9rem',
-    }}>
+    <MediaCardGrid>
       {novels.map((n, i) => (
         <NFNovelCard key={n.slug} volume={n} index={i} />
       ))}
-    </div>
+    </MediaCardGrid>
   );
 }
 
@@ -231,11 +228,11 @@ export default async function WebNovelsPage() {
         {/* ── 01 · Recommendations ─────────────────────────────── */}
         <Section label="Recommendations" accent="var(--paper)" number="01">
           <Suspense fallback={<div style={{ height: '280px' }} />}>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+            <MediaCardGrid>
               {popular.slice(0, 12).map((n, i) => (
                 <NFRecommendCard key={n.slug} novel={n} rank={i + 1} />
               ))}
-            </div>
+            </MediaCardGrid>
           </Suspense>
         </Section>
 
