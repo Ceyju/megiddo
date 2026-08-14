@@ -62,52 +62,10 @@ export interface AniListResponse<T> {
   data: T;
 }
 
-// Consumet Types
-export interface ConsumetAnimeInfo {
-  id: string;
-  title: string;
-  url: string;
-  image: string;
-  releaseDate: string | null;
-  description: string | null;
-  genres: string[];
-  subOrDub: "sub" | "dub";
-  type: string | null;
-  status: string;
-  otherName: string | null;
-  totalEpisodes: number;
-  episodes: ConsumetEpisode[];
-}
-
-export interface ConsumetEpisode {
+export interface EpisodeRef {
   id: string;
   number: number;
   url: string;
-}
-
-export interface ConsumetSource {
-  url: string;
-  isM3U8: boolean;
-  quality?: string;
-}
-
-export interface ConsumetStreamData {
-  headers: { Referer: string };
-  sources: ConsumetSource[];
-  download?: string;
-}
-
-export interface ConsumetSearchResult {
-  currentPage: number;
-  hasNextPage: boolean;
-  results: {
-    id: string;
-    title: string;
-    url: string;
-    image: string;
-    releaseDate: string | null;
-    subOrDub: "sub" | "dub";
-  }[];
 }
 
 export interface AnifyEpisode {
