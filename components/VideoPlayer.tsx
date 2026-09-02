@@ -220,7 +220,7 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
               onClick={toggleFullscreen}
             >
               {isFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-              <span>{isFullscreen ? "Exit fullscreen" : ""}</span>
+              <span>{isFullscreen ? "" : ""}</span>
             </button>
           </div>
         </>
