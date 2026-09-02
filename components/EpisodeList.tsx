@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AiringTime from "@/components/AiringTime";
 import type { EpisodeRef } from "@/types";
 
 interface EpisodeListProps {
@@ -14,11 +15,8 @@ export default function EpisodeList({ episodes, anilistId, currentEpisodeId }: E
     <div className="flex flex-col max-h-[620px] overflow-y-auto">
       {episodes.map((ep) => {
         const isCurrent = ep.id === currentEpisodeId;
-        return (
-          <Link
-            key={ep.id}
-            href={`/watch/${anilistId}/${encodeURIComponent(ep.id)}`}
-            style={{
+        const isUpcoming = ep.availability === "upcoming";
+        const rowStyle = {
               display: "flex",
               alignItems: "center",
               gap: "12px",
@@ -28,16 +26,12 @@ export default function EpisodeList({ episodes, anilistId, currentEpisodeId }: E
               background: isCurrent ? "var(--surface-2)" : "transparent",
               borderLeft: isCurrent ? "3px solid var(--red)" : "3px solid transparent",
               transition: "background 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              if (!isCurrent)
-                (e.currentTarget as HTMLElement).style.background = "var(--surface)";
-            }}
-            onMouseLeave={(e) => {
-              if (!isCurrent)
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
-          >
+              minHeight: "52px",
+              opacity: isUpcoming ? 0.72 : 1,
+              cursor: isUpcoming ? "not-allowed" : undefined,
+            } as const;
+        const content = (
+          <>
             {/* Episode number */}
             <span
               style={{
@@ -64,12 +58,39 @@ export default function EpisodeList({ episodes, anilistId, currentEpisodeId }: E
               Episode {ep.number}
             </span>
 
-            {/* Playing indicator */}
-            {isCurrent && (
+            {isUpcoming ? (
               <span
                 style={{
                   fontFamily: "var(--font-condensed, Arial)",
-                  fontSize: "0.58rem",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.08em",
+                  color: "var(--muted)",
+                  textAlign: "right",
+                  textTransform: "uppercase",
+                }}
+              >
+                <AiringTime airingAt={ep.airingAt} />
+              </span>
+            ) : ep.availability === "available" && !isCurrent ? (
+              <span
+                style={{
+                  fontFamily: "var(--font-condensed, Arial)",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.1em",
+                  color: "var(--lime)",
+                  textTransform: "uppercase",
+                }}
+              >
+                AVAILABLE
+              </span>
+            ) : null}
+
+            {/* Playing indicator */}
+            {isCurrent && !isUpcoming && (
+              <span
+                style={{
+                  fontFamily: "var(--font-condensed, Arial)",
+                  fontSize: "0.75rem",
                   letterSpacing: "0.12em",
                   color: "var(--red)",
                   textTransform: "uppercase",
@@ -80,6 +101,37 @@ export default function EpisodeList({ episodes, anilistId, currentEpisodeId }: E
                 NOW
               </span>
             )}
+          </>
+        );
+
+        if (isUpcoming) {
+          return (
+            <div
+              key={ep.id}
+              aria-disabled="true"
+              aria-label={`Episode ${ep.number}, unavailable`}
+              style={rowStyle}
+            >
+              {content}
+            </div>
+          );
+        }
+
+        return (
+          <Link
+            key={ep.id}
+            href={`/watch/${anilistId}/${encodeURIComponent(ep.id)}`}
+            style={rowStyle}
+            onMouseEnter={(e) => {
+              if (!isCurrent)
+                (e.currentTarget as HTMLElement).style.background = "var(--surface)";
+            }}
+            onMouseLeave={(e) => {
+              if (!isCurrent)
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+            }}
+          >
+            {content}
           </Link>
         );
       })}

@@ -41,7 +41,14 @@ const ANIME_FRAGMENT = `
   }
   nextAiringEpisode {
     episode
+    airingAt
     timeUntilAiring
+  }
+  airingSchedule(notYetAired: true, page: 1, perPage: 25) {
+    nodes {
+      episode
+      airingAt
+    }
   }
   trailer {
     id

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getAnimeById } from '@/lib/anilist';
+import { buildAnimeEpisodes } from '@/lib/anime-episodes';
 import { getAnimeTitle, formatScore, formatStatus, stripHtml } from '@/lib/utils';
 
 export const revalidate = 3600;
@@ -32,15 +33,9 @@ export default async function AnimePage({ params }: Props) {
 
   const title = getAnimeTitle(anime.title);
 
-  // Generate episode list from AniList data — no external streaming API needed
-  const episodeCount = anime.episodes
-    ?? (anime.status === 'RELEASING' ? Math.max((anime.nextAiringEpisode?.episode ?? 1) - 1, 1) : 1);
-  const episodes = Array.from({ length: episodeCount }, (_, i) => ({
-    id: String(i + 1),
-    number: i + 1,
-    url: '',
-  }));
-  const firstEpisode = episodes[0];
+  const episodes = buildAnimeEpisodes(anime);
+  const availableEpisodeCount = episodes.filter(ep => ep.availability === 'available').length;
+  const firstEpisode = episodes.find(ep => ep.number === 1 && ep.availability === 'available');
   const studios = anime.studios.nodes.map(s => s.name).join(', ');
 
   return (
@@ -174,7 +169,7 @@ export default async function AnimePage({ params }: Props) {
           )}
           {episodes.length > 0 && (
             <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase' }}>
-              {episodes.length} EPISODES AVAILABLE
+              {availableEpisodeCount} OF {episodes.length} EPISODES AVAILABLE
             </span>
           )}
         </div>
@@ -261,7 +256,7 @@ export default async function AnimePage({ params }: Props) {
                 EPISODES
                 {episodes.length > 0 && (
                   <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', color: 'var(--muted)', letterSpacing: '0.1em' }}>
-                    {episodes.length} TOTAL
+                    {availableEpisodeCount} OF {episodes.length} AVAILABLE
                   </span>
                 )}
               </div>

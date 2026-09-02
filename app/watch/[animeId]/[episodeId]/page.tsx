@@ -3,8 +3,13 @@ import Link from 'next/link';
 import { getAnimeById } from '@/lib/anilist';
 import VideoPlayer, { type IframeProvider, type StreamingLink } from '@/components/VideoPlayer';
 import EpisodeList from '@/components/EpisodeList';
+import AiringTime from '@/components/AiringTime';
 import HoverLink from '@/components/HoverLink';
+import { buildAnimeEpisodes } from '@/lib/anime-episodes';
 import { getAnimeTitle } from '@/lib/utils';
+import { buildVidFastTvUrl } from '@/lib/vidfast';
+import { buildVidLinkAnimeUrl } from '@/lib/vidlink';
+import { buildDropFileAnimeUrl } from '@/lib/dropfile';
 
 interface Props {
   params: Promise<{ animeId: string; episodeId: string }>;
@@ -16,9 +21,13 @@ export const revalidate = 3600;
 export default async function WatchPage({ params, searchParams }: Props) {
   const { animeId, episodeId: rawEpisodeId } = await params;
   const { season: rawSeason } = await searchParams;
-  const episodeNumber = Number(rawEpisodeId) || 1;
+  const episodeNumber = Number(rawEpisodeId);
   const seasonNumber = Number(rawSeason) || 1;
   const anilistId = Number(animeId);
+
+  if (!Number.isInteger(anilistId) || anilistId <= 0 || !Number.isInteger(episodeNumber) || episodeNumber <= 0) {
+    notFound();
+  }
 
   const animeData = await getAnimeById(anilistId).catch(() => null);
   if (!animeData) return notFound();
@@ -26,23 +35,22 @@ export default async function WatchPage({ params, searchParams }: Props) {
 
   const title = getAnimeTitle(anime.title);
 
-  const episodeCount = anime.episodes
-    ?? (anime.status === 'RELEASING' ? Math.max((anime.nextAiringEpisode?.episode ?? 1) - 1, 1) : 1);
-  const episodes = Array.from({ length: episodeCount }, (_, i) => ({
-    id: String(i + 1),
-    number: i + 1,
-    url: '',
-  }));
+  const episodes = buildAnimeEpisodes(anime);
+  const currentEpisode = episodes.find(e => e.number === episodeNumber);
+  if (!currentEpisode) notFound();
 
-  const currentEpisode = episodes.find(e => e.number === episodeNumber) ?? episodes[0];
-  const currentEpisodeIndex = episodes.indexOf(currentEpisode);
-  const prevEpisode = currentEpisodeIndex > 0 ? episodes[currentEpisodeIndex - 1] : null;
-  const nextEpisode = currentEpisodeIndex < episodes.length - 1 ? episodes[currentEpisodeIndex + 1] : null;
+  const availableEpisodes = episodes.filter(e => e.availability === 'available');
+  const availableEpisodeCount = availableEpisodes.length;
+  const previousEpisodes = availableEpisodes.filter(e => e.number < currentEpisode.number);
+  const prevEpisode = previousEpisodes.at(-1) ?? null;
+  const nextEpisode = availableEpisodes.find(e => e.number > currentEpisode.number) ?? null;
+  const latestAvailableEpisode = availableEpisodes.at(-1) ?? null;
+  const isUpcoming = currentEpisode.availability === 'upcoming';
 
   // SIMKL ID lookup: AniList ID → IMDb ID + TVDb ID (cached 24h)
   let imdbId: string | null = null;
   const simklClientId = process.env.SIMKL_CLIENT_ID;
-  if (simklClientId) {
+  if (simklClientId && !isUpcoming) {
     try {
       // Step 1: resolve AniList ID → SIMKL ID
       const searchRes = await fetch(
@@ -70,9 +78,25 @@ export default async function WatchPage({ params, searchParams }: Props) {
   }
 
   const vidfastImdbId = imdbId && /^tt\d{7,10}$/.test(imdbId) ? imdbId : null;
-  const iframeProviders: IframeProvider[] = vidfastImdbId
-    ? [{ label: "VidFast", src: `https://vidfast.pro/tv/${vidfastImdbId}/${seasonNumber}/${episodeNumber}?autoPlay=true` }]
-    : [];
+  const iframeProviders: IframeProvider[] = [
+    ...(vidfastImdbId
+      ? [{ label: "VidFast", src: buildVidFastTvUrl(vidfastImdbId, seasonNumber, episodeNumber) }]
+      : []),
+    ...(anime.idMal
+      ? [{
+          label: "VidLink",
+          src: buildVidLinkAnimeUrl(anime.idMal, episodeNumber, "sub"),
+          experimental: true,
+          parameterSummary: `MAL ${anime.idMal} · EP ${episodeNumber} · SUB · FALLBACK ON`,
+        }]
+      : []),
+    {
+      label: "DropFile",
+      src: buildDropFileAnimeUrl(anilistId, seasonNumber, episodeNumber, "sub", "en"),
+      experimental: true,
+      parameterSummary: `ANILIST ${anilistId} · S${seasonNumber} · EP ${episodeNumber} · SUB · EN`,
+    },
+  ];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
   // let streamingLinks: StreamingLink[] = [];
@@ -117,22 +141,44 @@ export default async function WatchPage({ params, searchParams }: Props) {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          <VideoPlayer
+          {isUpcoming ? (
+            <section className="player-shell" aria-labelledby="episode-unavailable-title">
+              <div className="player-empty" role="status">
+                <h2 id="episode-unavailable-title">Episode not available yet</h2>
+                <p>
+                  Episode {currentEpisode.number} release:{' '}
+                  <span style={{ color: 'var(--paper)' }}>
+                    <AiringTime airingAt={currentEpisode.airingAt} />
+                  </span>.
+                </p>
+                <div className="provider-links">
+                  {latestAvailableEpisode && (
+                    <Link className="editorial-button" href={'/watch/' + anilistId + '/' + encodeURIComponent(latestAvailableEpisode.id)}>
+                      WATCH EP {latestAvailableEpisode.number}
+                    </Link>
+                  )}
+                  <Link className="editorial-button" href={'/anime/' + anilistId}>
+                    ALL EPISODES
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <VideoPlayer
               iframeProviders={iframeProviders}
-              title={title + (currentEpisode ? ' — Episode ' + currentEpisode.number : '')}
+              title={title + ' — Episode ' + currentEpisode.number}
               streamingLinks={streamingLinks}
             />
+          )}
 
           {/* Episode title bar */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
             <h1 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(1.1rem, 2.5vw, 1.8rem)', letterSpacing: '0.06em', color: 'var(--paper)', lineHeight: 1 }}>
               {title.toUpperCase()}
             </h1>
-            {currentEpisode && (
-              <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.12em', color: 'var(--muted)', textTransform: 'uppercase' }}>
-                EP {String(currentEpisode.number).padStart(2, '0')}
-              </span>
-            )}
+            <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.12em', color: isUpcoming ? 'var(--red)' : 'var(--muted)', textTransform: 'uppercase' }}>
+              EP {String(currentEpisode.number).padStart(2, '0')}{isUpcoming ? ' · UPCOMING' : ''}
+            </span>
           </div>
 
           {/* Navigation row */}
@@ -200,7 +246,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
             <span style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '1.2rem', letterSpacing: '0.08em', color: 'var(--paper)' }}>EPISODES</span>
             {episodes.length > 0 && (
-              <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.65rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase' }}>{episodes.length} TOTAL</span>
+              <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.65rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase' }}>{availableEpisodeCount} OF {episodes.length} AVAILABLE</span>
             )}
           </div>
           {episodes.length > 0 ? (

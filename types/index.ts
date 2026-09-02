@@ -26,7 +26,14 @@ export interface AniListAnime {
   };
   nextAiringEpisode: {
     episode: number;
+    airingAt: number;
     timeUntilAiring: number;
+  } | null;
+  airingSchedule?: {
+    nodes: {
+      episode: number;
+      airingAt: number;
+    }[];
   } | null;
   trailer: {
     id: string;
@@ -66,6 +73,8 @@ export interface EpisodeRef {
   id: string;
   number: number;
   url: string;
+  availability?: 'available' | 'upcoming';
+  airingAt?: number | null;
 }
 
 export interface AnifyEpisode {
