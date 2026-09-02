@@ -8,8 +8,8 @@ import HoverLink from '@/components/HoverLink';
 import { buildAnimeEpisodes } from '@/lib/anime-episodes';
 import { getAnimeTitle } from '@/lib/utils';
 import { buildVidFastTvUrl } from '@/lib/vidfast';
-import { buildVidLinkAnimeUrl } from '@/lib/vidlink';
-import { buildDropFileAnimeUrl } from '@/lib/dropfile';
+// import { buildVidLinkAnimeUrl } from '@/lib/vidlink';
+// import { buildDropFileAnimeUrl } from '@/lib/dropfile';
 
 interface Props {
   params: Promise<{ animeId: string; episodeId: string }>;
@@ -82,20 +82,20 @@ export default async function WatchPage({ params, searchParams }: Props) {
     ...(vidfastImdbId
       ? [{ label: "VidFast", src: buildVidFastTvUrl(vidfastImdbId, seasonNumber, episodeNumber) }]
       : []),
-    ...(anime.idMal
-      ? [{
-          label: "VidLink",
-          src: buildVidLinkAnimeUrl(anime.idMal, episodeNumber, "sub"),
-          experimental: true,
-          parameterSummary: `MAL ${anime.idMal} · EP ${episodeNumber} · SUB · FALLBACK ON`,
-        }]
-      : []),
-    {
-      label: "DropFile",
-      src: buildDropFileAnimeUrl(anilistId, seasonNumber, episodeNumber, "sub", "en"),
-      experimental: true,
-      parameterSummary: `ANILIST ${anilistId} · S${seasonNumber} · EP ${episodeNumber} · SUB · EN`,
-    },
+    // ...(anime.idMal
+    //   ? [{
+    //       label: "VidLink",
+    //       src: buildVidLinkAnimeUrl(anime.idMal, episodeNumber, "sub"),
+    //       experimental: true,
+    //       parameterSummary: `MAL ${anime.idMal} · EP ${episodeNumber} · SUB · FALLBACK ON`,
+    //     }]
+    //   : []),
+    // {
+    //   label: "DropFile",
+    //   src: buildDropFileAnimeUrl(anilistId, seasonNumber, episodeNumber, "sub", "en"),
+    //   experimental: true,
+    //   parameterSummary: `ANILIST ${anilistId} · S${seasonNumber} · EP ${episodeNumber} · SUB · EN`,
+    // },
   ];
 
   // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
