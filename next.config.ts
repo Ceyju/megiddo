@@ -10,7 +10,7 @@ const csp = [
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
   "worker-src 'self' blob:",
-  "frame-src https://vidfast.pro https://vidfast.vc",
+  "frame-src https://vidfast.pro https://vidfast.vc https://vidlink.pro https://dropfile.cc",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
