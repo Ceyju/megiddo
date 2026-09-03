@@ -12,9 +12,10 @@ interface Props {
   chapterNumber: string | null;
   prevChapterId: string | null;
   nextChapterId: string | null;
+  scanlationGroup?: string | null;
 }
 
-export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId }: Props) {
+export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId, scanlationGroup }: Props) {
   const [quality, setQuality] = useState<"normal" | "datasaver">("normal");
   const [loaded, setLoaded] = useState<Record<number, boolean>>({});
 
@@ -102,7 +103,7 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
       </div>
 
       <p style={{ textAlign: "center", fontFamily: "var(--font-condensed, Arial)", fontSize: "0.55rem", letterSpacing: "0.08em", color: "var(--border-2)", paddingBottom: "2rem", textTransform: "uppercase" }}>
-        Powered by MangaDex
+        Images served by MangaDex{scanlationGroup && scanlationGroup !== 'Unknown' ? ` · Translation by ${scanlationGroup}` : ''}
       </p>
     </div>
   );

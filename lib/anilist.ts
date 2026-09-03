@@ -1,6 +1,6 @@
 import { GraphQLClient } from 'graphql-request';
 import type { AniListAnime, AniListPageInfo } from '@/types';
-import type { MDManga } from './mangadex';
+import { sanitizeOfficialMangaUrl, type MDManga } from './mangadex';
 
 const ANILIST_GQL = process.env.ANILIST_ENDPOINT ?? '';
 const client = new GraphQLClient(ANILIST_GQL);
@@ -194,6 +194,7 @@ export function getCurrentSeason(): { season: string; year: number } {
 
 interface ALMangaMedia {
   id: number;
+  idMal: number | null;
   title: { romaji: string | null; english: string | null; native: string | null };
   description: string | null;
   coverImage: { large: string | null; extraLarge: string | null } | null;
@@ -203,10 +204,12 @@ interface ALMangaMedia {
   startDate: { year: number | null } | null;
   chapters: number | null;
   averageScore: number | null;
+  externalLinks: Array<{ site: string; url: string }> | null;
 }
 
 const MANGA_FIELDS = `
   id
+  idMal
   title { romaji english native }
   description(asHtml: false)
   coverImage { large extraLarge }
@@ -216,6 +219,7 @@ const MANGA_FIELDS = `
   startDate { year }
   chapters
   averageScore
+  externalLinks { site url }
 `;
 
 // ---------------------------------------------------------------------------
@@ -243,12 +247,18 @@ function alFormat(f: string | null): MDManga['type'] {
 }
 
 function alMangaToMDManga(m: ALMangaMedia): MDManga {
+  const officialLinks = (m.externalLinks ?? [])
+    .map((link) => ({ label: link.site, url: sanitizeOfficialMangaUrl(link.url) }))
+    .filter((link): link is { label: string; url: string } => Boolean(link.url));
   return {
     id: `anilist:${m.id}`,
     title: m.title.english ?? m.title.romaji ?? 'Unknown',
     altTitles: [m.title.romaji, m.title.native].filter(
       (t): t is string => !!t && t !== (m.title.english ?? m.title.romaji),
     ),
+    titleEnglish: m.title.english,
+    titleRomaji: m.title.romaji,
+    titleNative: m.title.native,
     description: m.description ?? '',
     status: alStatus(m.status),
     contentRating: 'safe',
@@ -257,6 +267,12 @@ function alMangaToMDManga(m: ALMangaMedia): MDManga {
     type: alFormat(m.format),
     year: m.startDate?.year ?? null,
     latestChapter: m.chapters != null ? String(m.chapters) : null,
+    publishedChapterCount: m.chapters,
+    externalIds: {
+      anilist: String(m.id),
+      mal: m.idMal != null ? String(m.idMal) : undefined,
+    },
+    officialLinks,
     slug: null,
     updatedAt: null,
   };

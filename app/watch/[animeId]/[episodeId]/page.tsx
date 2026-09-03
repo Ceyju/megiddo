@@ -4,7 +4,6 @@ import { getAnimeById } from '@/lib/anilist';
 import VideoPlayer, { type IframeProvider, type StreamingLink } from '@/components/VideoPlayer';
 import EpisodeList from '@/components/EpisodeList';
 import AiringTime from '@/components/AiringTime';
-import HoverLink from '@/components/HoverLink';
 import { buildAnimeEpisodes } from '@/lib/anime-episodes';
 import { getAnimeTitle } from '@/lib/utils';
 import { buildVidFastTvUrl } from '@/lib/vidfast';
@@ -184,7 +183,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
           {/* Navigation row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
 
-            {/* All episodes link */}
+            {/* All episodes link
             <HoverLink href={'/anime/' + anilistId} style={{
               fontFamily: 'var(--font-condensed, Arial)',
               fontSize: '0.68rem',
@@ -198,7 +197,7 @@ export default async function WatchPage({ params, searchParams }: Props) {
             }}
             >
               ◫ ALL EPISODES
-            </HoverLink>
+            </HoverLink> */}
 
             {/* Prev / Next */}
             <div style={{ display: 'flex', gap: '8px' }}>

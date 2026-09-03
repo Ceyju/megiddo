@@ -1,4 +1,4 @@
-import type { MDManga, MDChapter } from './mangadex';
+import type { MDManga } from './mangadex';
 
 const BASE = 'https://kitsu.io/api/edge';
 const ACCEPT = 'application/vnd.api+json';
@@ -50,22 +50,6 @@ function kitsuType(subtype: string | null): MDManga['type'] {
     case 'one_shot': return 'one_shot';
     default:         return 'manga';
   }
-}
-
-function bestTitle(
-  titles: Record<string, unknown> | null,
-  canonical: string | null,
-): string {
-  if (canonical) return canonical;
-  if (!titles) return 'Unknown';
-  return (
-    (titles['en'] as string) ||
-    (titles['en_us'] as string) ||
-    (titles['en_jp'] as string) ||
-    (titles['ja_jp'] as string) ||
-    (Object.values(titles).find((v) => typeof v === 'string' && v) as string) ||
-    'Unknown'
-  );
 }
 
 function kitsuContentRating(ageRating: string | null): MDManga['contentRating'] {
@@ -160,20 +144,21 @@ function buildCategoryMap(included: unknown[]): Map<string, string> {
   return map;
 }
 
-interface KitsuChapterAttrs {
-  canonicalTitle?: string;
-  titles?: Record<string, unknown>;
-  volumeNumber?: number | null;
-  number?: number | null;
-  synopsis?: string;
-  published?: KitsuOptional<string>;
-  length?: KitsuOptional<string | number>;
-  thumbnail?: KitsuOptional<{ original?: string }>;
+interface KitsuMappingItem {
+  type: string;
+  attributes?: { externalSite?: string; externalId?: string };
 }
 
-interface KitsuChapterItem {
-  id: string;
-  attributes: KitsuChapterAttrs;
+function buildExternalIds(items: unknown[]): { anilist?: string; mal?: string } {
+  const ids: { anilist?: string; mal?: string } = {};
+  for (const item of items) {
+    const mapping = item as KitsuMappingItem;
+    if (mapping.type !== 'mappings' || !mapping.attributes?.externalId) continue;
+    const site = mapping.attributes.externalSite?.toLowerCase() ?? '';
+    if (site.includes('anilist') && site.includes('manga')) ids.anilist = mapping.attributes.externalId;
+    if (site.includes('myanimelist') && site.includes('manga')) ids.mal = mapping.attributes.externalId;
+  }
+  return ids;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,9 +168,20 @@ interface KitsuChapterItem {
 function kitsuToMDManga(
   item: KitsuItem,
   categoryMap?: Map<string, string>,
+  mappedIds: { anilist?: string; mal?: string } = {},
 ): MDManga {
   const a = item.attributes;
   const poster = ks<KitsuPosterImage>(a.posterImage);
+  const titles = a.titles ?? {};
+  const titleEnglish = (titles.en as string) || (titles.en_us as string) || null;
+  const titleRomaji = (titles.en_jp as string) || a.canonicalTitle || null;
+  const titleNative = (titles.ja_jp as string) || null;
+  const displayTitle = titleEnglish ?? titleRomaji ?? titleNative ?? 'Unknown';
+  const alternativeTitles = Array.from(new Set([
+    titleRomaji,
+    titleNative,
+    ...(a.abbreviatedTitles ?? []),
+  ].filter((title): title is string => Boolean(title) && title !== displayTitle))).slice(0, 8);
 
   const tags: string[] = [];
   if (categoryMap && item.relationships?.categories?.data) {
@@ -197,8 +193,11 @@ function kitsuToMDManga(
 
   return {
     id: `kitsu:${item.id}`,
-    title: bestTitle(a.titles ?? null, a.canonicalTitle ?? null),
-    altTitles: a.abbreviatedTitles ?? [],
+    title: displayTitle,
+    altTitles: alternativeTitles,
+    titleEnglish,
+    titleRomaji,
+    titleNative,
     description: a.synopsis ?? a.description ?? '',
     status: kitsuStatus(a.status ?? null),
     contentRating: kitsuContentRating(ks<string>(a.ageRating)),
@@ -211,32 +210,11 @@ function kitsuToMDManga(
     year: a.startDate ? Number(a.startDate.slice(0, 4)) : null,
     latestChapter:
       typeof a.chapterCount === 'number' ? String(a.chapterCount) : null,
+    publishedChapterCount: typeof a.chapterCount === 'number' ? a.chapterCount : null,
+    externalIds: { kitsu: item.id, ...mappedIds },
+    officialLinks: [],
     updatedAt: a.updatedAt ?? null,
     slug: a.slug ?? null,
-  };
-}
-
-function kitsuToMDChapter(item: KitsuChapterItem): MDChapter {
-  const a = item.attributes;
-  const published = ks<string>(a.published);
-  const pages = ks<string | number>(a.length);
-  return {
-    id: `kitsu-ch:${item.id}`,
-    chapter:
-      a.number !== null && a.number !== undefined ? String(a.number) : null,
-    title: a.canonicalTitle ?? bestTitle(a.titles ?? null, null),
-    volume:
-      a.volumeNumber !== null && a.volumeNumber !== undefined
-        ? String(a.volumeNumber)
-        : null,
-    publishAt: published ?? new Date(0).toISOString(),
-    pages:
-      typeof pages === 'number'
-        ? pages
-        : typeof pages === 'string'
-          ? Number(pages) || 0
-          : 0,
-    scanlationGroup: 'Kitsu',
   };
 }
 
@@ -320,15 +298,14 @@ export async function getKitsuTrending(limit = 20): Promise<MDManga[]> {
  * Fetch a single Kitsu manga by its numeric ID (e.g. "14900").
  *
  * Uses cache: 'no-store' to bypass Next.js per-render fetch deduplication.
- * Without this, a parallel getKitsuChapters call in Promise.all can poison
- * the fetch cache and cause a null response on subsequent renders.
+ * The detail lookup remains uncached so catalog mappings stay current.
  * Revalidation is handled at the page level via `export const revalidate`.
  */
 export async function getKitsuMangaById(
   kitsuId: string,
 ): Promise<MDManga | null> {
   try {
-    const url = `${BASE}/manga/${kitsuId}?include=categories`;
+    const url = `${BASE}/manga/${kitsuId}?include=categories,mappings`;
     const res = await fetch(url, {
       headers: { Accept: ACCEPT },
       cache: 'no-store',
@@ -345,7 +322,8 @@ export async function getKitsuMangaById(
       return null;
     }
     const categoryMap = buildCategoryMap((json.included as unknown[]) ?? []);
-    return kitsuToMDManga(json.data as KitsuItem, categoryMap);
+    const externalIds = buildExternalIds((json.included as unknown[]) ?? []);
+    return kitsuToMDManga(json.data as KitsuItem, categoryMap, externalIds);
   } catch (err) {
     console.error(`[kitsu] getKitsuMangaById(${kitsuId}) threw:`, err);
     return null;
@@ -373,46 +351,6 @@ export async function searchKitsuManga(
     );
   } catch {
     return [];
-  }
-}
-
-/**
- * Fetch chapters for a Kitsu manga by its numeric ID, with offset pagination.
- *
- * The Kitsu /chapters endpoint filters by mangaId (numeric ID, not slug).
- * Limit is capped at 20 per API constraints.
- *
- * NOTE: Most manga on Kitsu have zero chapters in this endpoint —
- * Kitsu only has chapter data for titles it has licensed/scanlated metadata for.
- * A total of 0 is expected and normal, not an error.
- */
-export async function getKitsuChapters(
-  kitsuId: string,
-  offset = 0,
-  limit = 20,
-): Promise<{ chapters: MDChapter[]; total: number }> {
-  const safeLimit = Math.min(limit, MAX_LIMIT);
-  try {
-    const url =
-      `${BASE}/chapters?filter[mangaId]=${kitsuId}&page[limit]=${safeLimit}&page[offset]=${offset}&sort=number`;
-    const res = await fetch(url, {
-      headers: { Accept: ACCEPT },
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) {
-      console.error(`[kitsu] getKitsuChapters(${kitsuId}) HTTP ${res.status}`);
-      return { chapters: [], total: 0 };
-    }
-    const json = await res.json();
-    // meta.count is the total records across all pages per JSON:API spec.
-    const total: number =
-      (json.meta as { count?: number } | undefined)?.count ??
-      (json.data as unknown[]).length;
-    const chapters = (json.data as KitsuChapterItem[]).map(kitsuToMDChapter);
-    return { chapters, total };
-  } catch (err) {
-    console.error(`[kitsu] getKitsuChapters(${kitsuId}) threw:`, err);
-    return { chapters: [], total: 0 };
   }
 }
 
