@@ -51,9 +51,6 @@ async function fetchBySource(source: string): Promise<SourceData> {
 }
 
 function cardHref(manga: MDManga): string {
-  if (manga.id.startsWith('comix:')) {
-    return `/manga/search?q=${encodeURIComponent(manga.title)}`;
-  }
   return `/manga/${encodeURIComponent(manga.id)}`;
 }
 
