@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import CarouselControls from "./CarouselControls";
 import { useEditorialCarousel } from "./useEditorialCarousel";
 import WobbleCard from "@/components/motion/WobbleCard";
 
@@ -69,7 +68,6 @@ export default function EditorialHeroCarousel({ items, label }: { items: Editori
           </button>
         ))}
       </div>
-      <CarouselControls current={current} total={items.length} onPrevious={previous} onNext={next} />
     </section>
   );
 }
