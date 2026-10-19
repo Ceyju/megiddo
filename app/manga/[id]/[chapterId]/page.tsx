@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import {
   findMangaForCatalogEntry,
-  getAllMangaChapterInventory,
+  getMangaChapterInventory,
+  getMangaById,
   getChapterInfo,
 } from '@/lib/mangadex';
 import {
@@ -13,6 +14,9 @@ import { getMangaByIdAL } from '@/lib/anilist';
 import { getKitsuMangaById } from '@/lib/kitsu';
 import ExternalChapterReader from '@/components/ExternalChapterReader';
 import MangaReader from '@/components/MangaReader';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
+import { ProviderNotFoundError } from '@/lib/server/provider-errors';
+import { uuid, providerId } from '@/lib/server/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,16 +67,27 @@ export default async function MangaReaderPage({ params }: Props) {
   if (chapterId.startsWith('kitsu-ch:')) {
     redirect(`/manga/${encodeURIComponent(mangaId)}`);
   }
-
-  const chapterInfo = await getChapterInfo(chapterId);
-  if (!chapterInfo?.mangaId || chapterInfo.asChapter.availability === 'unavailable') return notFound();
+  try { uuid(chapterId); providerId(mangaId); } catch { return notFound(); }
+  const backHref = `/manga/${encodeURIComponent(mangaId)}`;
+  const unavailable = async (missing: boolean, knownMangaId?: string) => {
+    const metadata = await (mangaId.startsWith('anilist:')
+      ? getMangaByIdAL(Number(mangaId.slice(8)))
+      : mangaId.startsWith('kitsu:')
+        ? getKitsuMangaById(mangaId.slice(6))
+        : getMangaById(knownMangaId ?? mangaId)).catch(() => null);
+    return <ProviderUnavailable title={missing ? 'Chapter unavailable' : 'Manga source temporarily unavailable'} message={missing ? 'This chapter listing no longer resolves to readable pages. Choose another chapter or an official release.' : 'The chapter source could not be reached. Please retry shortly.'} backHref={backHref} backLabel="All chapters" retryHref={`${backHref}/${encodeURIComponent(chapterId)}`} officialLinks={metadata?.officialLinks} />;
+  };
+  let chapterInfo;
+  try { chapterInfo = await getChapterInfo(chapterId); } catch { return unavailable(false); }
+  if (!chapterInfo?.mangaId || chapterInfo.asChapter.availability === 'unavailable') return unavailable(true);
 
   const sourceLabel = await verifyMangaIdentity(mangaId, chapterInfo.mangaId);
   if (!sourceLabel) return notFound();
 
-  const inventory = await getAllMangaChapterInventory(chapterInfo.mangaId);
-  const navigation = getReadableChapterNavigation(inventory, chapterId);
-  if (!navigation) return notFound();
+  const inventory = await getMangaChapterInventory(chapterInfo.mangaId);
+  const matchedNavigation = getReadableChapterNavigation(inventory.chapters, chapterId);
+  const navigation = matchedNavigation
+    ?? { current: chapterInfo.asChapter, previousId: null, nextId: null };
 
   const currentChapter = navigation.current;
   const prevChapterId = navigation.previousId;
@@ -98,12 +113,14 @@ export default async function MangaReaderPage({ params }: Props) {
   }
 
   if (!mangaDexPageProvider.canHandle(currentChapter)) return notFound();
-  const pages = await mangaDexPageProvider.resolvePages(chapterId);
-  if (!pages.length) return notFound();
+  let pages;
+  try { pages = await mangaDexPageProvider.resolvePages(chapterId); }
+  catch (error) { return unavailable(error instanceof ProviderNotFoundError, chapterInfo.mangaId); }
 
   return (
     <>
       <ProviderBadge source={sourceLabel} />
+      {!inventory.complete && <p role="status" style={{ padding: '1rem' }}>Chapter navigation is incomplete because the source could not return its full inventory.</p>}
       <MangaReader
         pages={pages}
         chapterId={chapterId}
@@ -112,6 +129,7 @@ export default async function MangaReaderPage({ params }: Props) {
         prevChapterId={prevChapterId}
         nextChapterId={nextChapterId}
         scanlationGroup={currentChapter.scanlationGroup}
+        inventoryComplete={inventory.complete && matchedNavigation !== null}
       />
     </>
   );

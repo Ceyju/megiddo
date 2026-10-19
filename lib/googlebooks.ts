@@ -1,5 +1,23 @@
-const GB_BASE = process.env.GOOGLE_BOOKS_API_BASE ?? '';
-const GB_KEY = process.env.GOOGLE_BOOKS_API_KEY ?? '';
+import { outboundFetch, UpstreamError } from './server/outbound';
+import { serverBaseUrl } from './server/env';
+
+async function gbFetch(path: string, parameters: Record<string, string> = {}) {
+  const base = serverBaseUrl('GOOGLE_BOOKS_API_BASE') ?? 'https://www.googleapis.com/books/v1';
+  const url = new URL(`${base}${path}`);
+  for (const [name, value] of Object.entries(parameters)) url.searchParams.set(name, value);
+  const key = process.env.GOOGLE_BOOKS_API_KEY?.trim();
+  if (key) url.searchParams.set('key', key);
+  try {
+    return await outboundFetch(url.toString(), {
+      allowedOrigins: [new URL(base).origin], expectedType: 'json', next: { revalidate: 3600 },
+    });
+  } catch (error) {
+    if (error instanceof UpstreamError && error.upstreamStatus === 404) return null;
+    const status = error instanceof UpstreamError ? error.upstreamStatus : undefined;
+    console.error('[Google Books] provider request failed', { status: status ?? 'network-or-response-error' });
+    throw new UpstreamError(status === 429 ? 'Google Books quota is temporarily exhausted' : status === 400 || status === 403 ? 'Google Books configuration was rejected' : 'Google Books is temporarily unavailable', 502, status);
+  }
+}
 
 export interface GBVolumeDetail {
   id: string;
@@ -20,12 +38,7 @@ export async function getGBVolumeById(
   volumeId: string,
 ): Promise<GBVolumeDetail | null> {
   try {
-    const url = new URL(`${GB_BASE}/volumes/${volumeId}`);
-    if (GB_KEY) url.searchParams.set('key', GB_KEY);
-    const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-
-    const j = await res.json() as {
+    const j = await gbFetch(`/volumes/${encodeURIComponent(volumeId)}`) as {
       id: string;
       volumeInfo?: {
         title?: string;
@@ -41,6 +54,8 @@ export async function getGBVolumeById(
       };
     };
 
+    if (!j) return null;
+    if (!j.id) throw new UpstreamError('Google Books returned malformed metadata');
     const v = j.volumeInfo ?? {};
     const isbns = v.industryIdentifiers ?? [];
 
@@ -59,8 +74,9 @@ export async function getGBVolumeById(
       averageRating: v.averageRating ?? null,
       previewLink: v.previewLink ?? null,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    throw new UpstreamError('Google Books is temporarily unavailable');
   }
 }
 
@@ -78,14 +94,7 @@ export async function checkGBPreview(
   volumeId: string,
 ): Promise<GBPreviewInfo | null> {
   try {
-    const url = new URL(`${GB_BASE}/volumes/${volumeId}`);
-    url.searchParams.set('projection', 'lite');
-    if (GB_KEY) url.searchParams.set('key', GB_KEY);
-
-    const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-
-    const json = await res.json() as {
+    const json = await gbFetch(`/volumes/${encodeURIComponent(volumeId)}`, { projection: 'lite' }) as {
       id: string;
       volumeInfo?: { previewLink?: string };
       accessInfo?: {
@@ -94,6 +103,8 @@ export async function checkGBPreview(
       };
     };
 
+    if (!json) return null;
+    if (!json.id) throw new UpstreamError('Google Books returned malformed preview data');
     const viewability = json.accessInfo?.viewability ?? 'UNKNOWN';
     const isEmbeddable =
       json.accessInfo?.embeddable === true &&
@@ -106,8 +117,9 @@ export async function checkGBPreview(
       previewLink: json.volumeInfo?.previewLink ?? null,
       viewerIdentifier: json.id, // Google Books volume ID is the most reliable identifier
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    throw new UpstreamError('Google Books is temporarily unavailable');
   }
 }
 
@@ -119,21 +131,14 @@ export async function checkGBPreviewByISBN(
   isbn: string,
 ): Promise<GBPreviewInfo | null> {
   try {
-    const url = new URL(`${GB_BASE}/volumes`);
-    url.searchParams.set('q', `isbn:${isbn}`);
-    url.searchParams.set('maxResults', '1');
-    url.searchParams.set('projection', 'lite');
-    if (GB_KEY) url.searchParams.set('key', GB_KEY);
-
-    const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-
-    const json = await res.json() as { items?: Array<{ id: string }> };
+    const json = await gbFetch('/volumes', { q: `isbn:${isbn}`, maxResults: '1', projection: 'lite' }) as { items?: Array<{ id: string }> } | null;
+    if (!json) return null;
     const volumeId = json.items?.[0]?.id;
     if (!volumeId) return null;
 
     return checkGBPreview(volumeId);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    throw new UpstreamError('Google Books is temporarily unavailable');
   }
 }

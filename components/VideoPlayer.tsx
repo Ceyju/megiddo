@@ -2,13 +2,7 @@
 
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-
-export interface IframeProvider {
-  label: string;
-  src: string;
-  experimental?: boolean;
-  parameterSummary?: string;
-}
+import { safePlayerUrl, type IframeProvider } from '@/lib/embed-providers';
 
 export interface StreamingLink {
   name: string;
@@ -22,14 +16,8 @@ interface VideoPlayerProps {
   streamingLinks?: StreamingLink[];
 }
 
-const EMBED_HOSTS = new Set([
-  "vidfast.pro",
-  "vidfast.vc",
-  "vidlink.pro",
-  "dropfile.cc",
-]);
-const EMBED_POLICY_VERSION = "vidfast-unsandboxed-v1";
-const EXPERIMENTAL_PROVIDER_TIMEOUT_MS = 12_000;
+const EMBED_POLICY_VERSION = "sandboxed-anime-v2";
+const PROVIDER_TIMEOUT_MS = 12_000;
 
 function safeHttpsUrl(value: string, allowedHosts?: Set<string>) {
   try {
@@ -42,12 +30,12 @@ function safeHttpsUrl(value: string, allowedHosts?: Set<string>) {
 }
 
 export default function VideoPlayer({ title, iframeSrc, iframeProviders, streamingLinks = [] }: VideoPlayerProps) {
-  const providers = (iframeProviders?.length ? iframeProviders : iframeSrc ? [{ label: "SERVER 1", src: iframeSrc }] : [])
+  const providers = (iframeProviders?.length ? iframeProviders : iframeSrc ? [{ id: 'vidnest' as const, label: "VidNest", src: iframeSrc }] : [])
     .flatMap((provider) => {
-      const src = safeHttpsUrl(provider.src, EMBED_HOSTS);
+      const src = safePlayerUrl(provider.src, provider.id);
       return src ? [{ ...provider, src }] : [];
     });
-  return <IsolatedPlayer providers={providers} title={title} streamingLinks={streamingLinks} />;
+  return <IsolatedPlayer key={providers.map(provider => provider.src).join('|')} providers={providers} title={title} streamingLinks={streamingLinks} />;
 }
 
 function IsolatedPlayer({ providers, title, streamingLinks }: {
@@ -69,20 +57,20 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
   const officialIndex = providers.length;
   const isOfficial = officialLinks.length > 0 && active === officialIndex;
   const provider = providers[active] ?? providers[0];
-  const vidfastIndex = providers.findIndex((item) => item.label.toLowerCase() === "vidfast");
+  const alternateIndex = providers.findIndex((_, index) => index !== active);
   const isFullscreen = isNativeFullscreen || isTheaterMode;
   const providerAttemptKey = provider ? `${provider.src}:${iframeAttempt}` : "";
   const isProviderTimedOut = timedOutAttemptKey === providerAttemptKey;
 
   useEffect(() => {
-    if (!provider?.experimental || isOfficial || loadedAttemptKey === providerAttemptKey) return;
+    if (!provider || isOfficial || loadedAttemptKey === providerAttemptKey) return;
 
     const timeout = window.setTimeout(() => {
       setTimedOutAttemptKey(providerAttemptKey);
-    }, EXPERIMENTAL_PROVIDER_TIMEOUT_MS);
+    }, PROVIDER_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [isOfficial, loadedAttemptKey, provider?.experimental, providerAttemptKey]);
+  }, [isOfficial, loadedAttemptKey, provider, providerAttemptKey]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -165,12 +153,11 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
             className="provider-tab"
             role="tab"
             aria-selected={index === active}
-            aria-label={`${item.label}${item.experimental ? " experimental" : ""}`}
-            key={item.src}
+            aria-label={item.label}
+            key={item.id}
             onClick={() => selectProvider(index)}
           >
             <span>{item.label}</span>
-            {item.experimental && <span className="provider-experimental-badge">Experimental</span>}
           </button>
         ))}
         {officialLinks.length > 0 && (
@@ -181,12 +168,6 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
 
       {!isOfficial && provider && (
         <>
-          {provider.experimental && (
-            <div className="provider-experimental-notice" role="note" aria-label={`${provider.label} experimental provider notice`}>
-              <span><strong>Experimental source.</strong> This third-party player may be unavailable, and the app cannot inspect failures inside it.</span>
-              {provider.parameterSummary && <code>{provider.parameterSummary}</code>}
-            </div>
-          )}
           <div className="player-frame">
             <iframe
               key={`${EMBED_POLICY_VERSION}:${provider.src}:${iframeAttempt}`}
@@ -195,22 +176,26 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
               allowFullScreen
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               referrerPolicy="no-referrer"
+              sandbox="allow-scripts allow-same-origin allow-presentation"
               onLoad={handleProviderLoad}
             />
             {isProviderTimedOut && (
               <div className="provider-timeout" role="alert">
                 <strong>Provider is taking too long</strong>
-                <span>{provider.label} did not finish loading. You can retry it or return to VidFast.</span>
+                <span>{provider.label} did not finish loading. Retry or select the other source.</span>
                 <div className="provider-timeout-actions">
                   <button type="button" className="editorial-button" onClick={retryProvider}>Retry provider</button>
-                  {vidfastIndex >= 0 && active !== vidfastIndex && (
-                    <button type="button" className="editorial-button" onClick={() => selectProvider(vidfastIndex)}>Back to VidFast</button>
+                  {alternateIndex >= 0 && (
+                    <button type="button" className="editorial-button" onClick={() => selectProvider(alternateIndex)}>Try {providers[alternateIndex].label}</button>
                   )}
                 </div>
               </div>
             )}
           </div>
           <div className="player-frame-actions">
+            <span role="status" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Not playing? Retry or switch sources.</span>
+            <button type="button" className="editorial-button" onClick={retryProvider}>Retry source</button>
+            {alternateIndex >= 0 && <button type="button" className="editorial-button" onClick={() => selectProvider(alternateIndex)}>Switch to {providers[alternateIndex].label}</button>}
             {/* <a className="player-external-link" href={provider.src} target="_blank" rel="noopener noreferrer">Open provider externally</a> */}
             <button
               type="button"

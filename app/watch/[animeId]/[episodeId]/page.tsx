@@ -1,14 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getAnimeById } from '@/lib/anilist';
-import VideoPlayer, { type IframeProvider, type StreamingLink } from '@/components/VideoPlayer';
+import VideoPlayer, { type StreamingLink } from '@/components/VideoPlayer';
 import EpisodeList from '@/components/EpisodeList';
 import AiringTime from '@/components/AiringTime';
 import { buildAnimeEpisodes } from '@/lib/anime-episodes';
 import { getAnimeTitle } from '@/lib/utils';
-import { buildVidFastTvUrl } from '@/lib/vidfast';
-// import { buildVidLinkAnimeUrl } from '@/lib/vidlink';
-// import { buildDropFileAnimeUrl } from '@/lib/dropfile';
+import { buildAnimeProviders } from '@/lib/server/anime-providers';
 
 interface Props {
   params: Promise<{ animeId: string; episodeId: string }>;
@@ -17,11 +15,9 @@ interface Props {
 
 export const revalidate = 3600;
 
-export default async function WatchPage({ params, searchParams }: Props) {
+export default async function WatchPage({ params }: Props) {
   const { animeId, episodeId: rawEpisodeId } = await params;
-  const { season: rawSeason } = await searchParams;
   const episodeNumber = Number(rawEpisodeId);
-  const seasonNumber = Number(rawSeason) || 1;
   const anilistId = Number(animeId);
 
   if (!Number.isInteger(anilistId) || anilistId <= 0 || !Number.isInteger(episodeNumber) || episodeNumber <= 0) {
@@ -46,76 +42,8 @@ export default async function WatchPage({ params, searchParams }: Props) {
   const latestAvailableEpisode = availableEpisodes.at(-1) ?? null;
   const isUpcoming = currentEpisode.availability === 'upcoming';
 
-  // SIMKL ID lookup: AniList ID → IMDb ID + TVDb ID (cached 24h)
-  let imdbId: string | null = null;
-  const simklClientId = process.env.SIMKL_CLIENT_ID;
-  if (simklClientId && !isUpcoming) {
-    try {
-      // Step 1: resolve AniList ID → SIMKL ID
-      const searchRes = await fetch(
-        `https://api.simkl.com/search/id?anilist=${anilistId}&client_id=${simklClientId}`,
-        { next: { revalidate: 86400 } }
-      );
-      if (searchRes.ok) {
-        const searchData: Array<{ ids?: { simkl?: number } }> = await searchRes.json();
-        const simklId = searchData?.[0]?.ids?.simkl;
-        if (simklId) {
-          // Step 2: get full details with IMDb / TVDb IDs
-          const detailRes = await fetch(
-            `https://api.simkl.com/anime/${simklId}?extended=full&client_id=${simklClientId}`,
-            { next: { revalidate: 86400 } }
-          );
-          if (detailRes.ok) {
-            const detail: { ids?: { imdb?: string; tvdb?: number } } = await detailRes.json();
-            if (detail.ids?.imdb) imdbId = detail.ids.imdb;
-          }
-        }
-      }
-    } catch {
-      // non-fatal
-    }
-  }
+  const iframeProviders = isUpcoming ? [] : buildAnimeProviders(anilistId, episodeNumber);
 
-  const vidfastImdbId = imdbId && /^tt\d{7,10}$/.test(imdbId) ? imdbId : null;
-  const iframeProviders: IframeProvider[] = [
-    ...(vidfastImdbId
-      ? [{ label: "VidFast", src: buildVidFastTvUrl(vidfastImdbId, seasonNumber, episodeNumber) }]
-      : []),
-    // ...(anime.idMal
-    //   ? [{
-    //       label: "VidLink",
-    //       src: buildVidLinkAnimeUrl(anime.idMal, episodeNumber, "sub"),
-    //       experimental: true,
-    //       parameterSummary: `MAL ${anime.idMal} · EP ${episodeNumber} · SUB · FALLBACK ON`,
-    //     }]
-    //   : []),
-    // {
-    //   label: "DropFile",
-    //   src: buildDropFileAnimeUrl(anilistId, seasonNumber, episodeNumber, "sub", "en"),
-    //   experimental: true,
-    //   parameterSummary: `ANILIST ${anilistId} · S${seasonNumber} · EP ${episodeNumber} · SUB · EN`,
-    // },
-  ];
-
-  // // Jikan streaming services (official platforms) — server-side fetch, no CORS issues
-  // let streamingLinks: StreamingLink[] = [];
-  // if (anime.idMal) {
-  //   try {
-  //     const jikanRes = await fetch(
-  //       `https://api.jikan.moe/v4/anime/${anime.idMal}/streaming`,
-  //       { next: { revalidate: 86400 } }
-  //     );
-  //     if (jikanRes.ok) {
-  //       const jikanData = await jikanRes.json();
-  //       streamingLinks = (jikanData.data ?? []).map((s: { name: string; url: string }) => ({
-  //         name: s.name,
-  //         url: s.url,
-  //       }));
-  //     }
-  //   } catch {
-  //     // non-fatal — just skip the official tab
-  //   }
-  // }
   const streamingLinks: StreamingLink[] = [];
 
   return (

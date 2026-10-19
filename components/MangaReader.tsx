@@ -13,9 +13,10 @@ interface Props {
   prevChapterId: string | null;
   nextChapterId: string | null;
   scanlationGroup?: string | null;
+  inventoryComplete?: boolean;
 }
 
-export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId, scanlationGroup }: Props) {
+export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId, scanlationGroup, inventoryComplete = true }: Props) {
   const [quality, setQuality] = useState<"normal" | "datasaver">("normal");
   const [loaded, setLoaded] = useState<Record<number, boolean>>({});
 
@@ -98,7 +99,7 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
         {nextChapterId ? (
           <Link href={`/manga/${mangaId}/${nextChapterId}`} style={{ fontFamily: "var(--font-display, Impact)", fontSize: "0.85rem", letterSpacing: "0.08em", textTransform: "uppercase", padding: "9px 24px", background: "var(--red)", border: "1px solid var(--red)", color: "var(--paper)", textDecoration: "none" }}>NEXT CHAPTER ›</Link>
         ) : (
-          <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", background: "var(--paper)", border: "1px solid var(--paper)", color: "var(--ink)", textDecoration: "none" }}>FINISHED ✓</Link>
+            <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", background: "var(--paper)", border: "1px solid var(--paper)", color: "var(--ink)", textDecoration: "none" }}>{inventoryComplete ? 'END OF AVAILABLE CHAPTERS' : 'CHECK CHAPTER LIST'}</Link>
         )}
       </div>
 

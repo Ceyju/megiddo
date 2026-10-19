@@ -49,9 +49,9 @@ function PublicationSummaryRail({ publication }: { publication: MangaUpdatesPubl
           href={publication.url}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.56rem', letterSpacing: '0.1em', color: 'var(--paper-2)', textDecoration: 'none', textTransform: 'uppercase' }}
+          style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', letterSpacing: '0.1em', color: 'var(--paper-2)', textDecoration: 'none', textTransform: 'uppercase' }}
         >
-          VIEW SOURCE ↗
+          ↗
         </a>
       </div>
 
@@ -145,6 +145,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
   let chapters: MDChapter[] = [];
   let total = 0;
   let readableTotal = 0;
+  let complete = true;
   let mangaDexMatch: MDManga | null = null;
   let sourceLabel: string;
 
@@ -157,7 +158,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
     mangaDexMatch = await findMangaForCatalogEntry(manga);
     if (mangaDexMatch) {
       const inventory = await getMangaChapters(mangaDexMatch.id, (page - 1) * CHAPTERS_PER_PAGE, CHAPTERS_PER_PAGE);
-      ({ chapters, total, readableTotal } = inventory);
+      ({ chapters, total, readableTotal, complete } = inventory);
       manga = {
         ...manga,
         slug: mangaDexMatch.id,
@@ -176,7 +177,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
     mangaDexMatch = await findMangaForCatalogEntry(manga);
     if (mangaDexMatch) {
       const offset = (page - 1) * CHAPTERS_PER_PAGE;
-      ({ chapters, total, readableTotal } = await getMangaChapters(mangaDexMatch.id, offset, CHAPTERS_PER_PAGE));
+      ({ chapters, total, readableTotal, complete } = await getMangaChapters(mangaDexMatch.id, offset, CHAPTERS_PER_PAGE));
       manga = {
         ...manga,
         slug: mangaDexMatch.id,
@@ -189,7 +190,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
   // ── MangaDex (direct UUID) ───────────────────────────────────
   } else {
     const offset = (page - 1) * CHAPTERS_PER_PAGE;
-    [manga, { chapters, total, readableTotal }] = await Promise.all([
+    [manga, { chapters, total, readableTotal, complete }] = await Promise.all([
       getMangaById(id),
       getMangaChapters(id, offset, CHAPTERS_PER_PAGE),
     ]);
@@ -351,7 +352,9 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
           </span>
         </div>
 
-        {readableTotal === 0 && (
+        {!complete && <p role="status" style={{ padding: '1rem', color: 'var(--muted)' }}>Chapter inventory is incomplete. Counts reflect only the entries returned; retry this page for the full list.</p>}
+
+        {readableTotal === 0 && complete && (
           <div role="status" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid var(--border-2)', background: 'var(--surface)' }}>
             <p style={{ fontFamily: 'var(--font-display, Impact)', letterSpacing: '0.06em', color: 'var(--paper)', marginBottom: '0.35rem' }}>
               No chapters available in the reader

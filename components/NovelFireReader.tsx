@@ -240,7 +240,7 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
 
         {chapter.paragraphs.map((para, idx) => (
           <p key={idx} ref={el => { paragraphRefs.current[idx] = el; }} data-idx={idx}
-            style={{ fontFamily, fontSize: `${settings.fontSize}px`, lineHeight: settings.lineHeight, color: theme.text, marginBottom: `${settings.lineHeight * 0.8}em`, textIndent: settings.fontFamily === 'serif' ? '2em' : '0' }}>
+            style={{ fontFamily, fontSize: `${settings.fontSize}px`, lineHeight: settings.lineHeight, whiteSpace: 'pre-line', color: theme.text, marginBottom: `${settings.lineHeight * 0.8}em`, textIndent: settings.fontFamily === 'serif' ? '2em' : '0' }}>
             {para}
           </p>
         ))}

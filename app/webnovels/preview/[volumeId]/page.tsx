@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getGBVolumeById } from '@/lib/googlebooks';
 import { parseNovel } from '@/lib/novelfire';
 import NovelFirePanel from '@/components/NovelFirePanel';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 
 function titleToNFSlug(title: string): string {
   return title
@@ -21,7 +22,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { volumeId } = await params;
-  const vol = await getGBVolumeById(volumeId);
+  const vol = await getGBVolumeById(volumeId).catch(() => null);
   return {
     title: vol ? `${vol.title} — Preview · Megiddo` : 'Preview · Megiddo',
   };
@@ -33,14 +34,17 @@ export default async function PreviewPage({ params }: Props) {
   // Basic validation — Google Books IDs are alphanumeric
   if (!/^[A-Za-z0-9_-]{4,40}$/.test(volumeId)) return notFound();
 
-  const vol = await getGBVolumeById(volumeId);
+  let vol;
+  try { vol = await getGBVolumeById(volumeId); }
+  catch {
+    return <ProviderUnavailable title="Book metadata temporarily unavailable" message="The book service could not return metadata. Native novel reading is still available from the novel library." backHref="/webnovels" backLabel="Browse novels" retryHref={`/webnovels/preview/${volumeId}`} />;
+  }
   if (!vol) return notFound();
 
   const year = vol.publishedDate?.slice(0, 4) ?? null;
   const nfSlug = titleToNFSlug(vol.title);
-  const nfNovel = await parseNovel(nfSlug);
-  const coverUrl = nfNovel?.coverUrl ?? null;
-  console.log('[preview] slug:', nfSlug, '| nfNovel:', nfNovel ? 'found' : 'null', '| coverUrl:', coverUrl);
+  const nfNovel = await parseNovel(nfSlug).catch(() => null);
+  const coverUrl = nfNovel?.coverUrl ?? vol.coverUrl;
 
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '0 0 5rem' }}>

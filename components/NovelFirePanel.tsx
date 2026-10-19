@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { NFChapterRef, NFChapterContent } from '@/lib/novelfire';
+import type { NFChapter, NFChapterContent, NovelChaptersResponse } from '@/lib/novelfire';
 
 interface Props {
   initialSlug: string;
@@ -13,7 +13,8 @@ type PanelState = 'loading' | 'loaded' | 'error';
 export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
   const [slug, setSlug] = useState(initialSlug);
   const [slugInput, setSlugInput] = useState(initialSlug);
-  const [chapters, setChapters] = useState<NFChapterRef[]>([]);
+  const [chapters, setChapters] = useState<NFChapter[]>([]);
+  const [errorMessage, setErrorMessage] = useState('');
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [panelState, setPanelState] = useState<PanelState>('loading');
@@ -21,6 +22,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
   // Reader state
   const [chapterContent, setChapterContent] = useState<NFChapterContent | null>(null);
   const [chapterLoading, setChapterLoading] = useState(false);
+  const [chapterError, setChapterError] = useState('');
 
   const loadChapters = useCallback(async (targetSlug: string, page = 1) => {
     setPanelState('loading');
@@ -29,15 +31,15 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
       const res = await fetch(
         `/api/webnovel/chapters?slug=${encodeURIComponent(targetSlug)}&page=${page}`,
       );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (!data.chapters?.length) throw new Error('no chapters');
+      if (!res.ok) throw new Error(res.status === 404 ? 'Novel not found. Check the slug below.' : 'Novel source is temporarily unavailable. Retry shortly.');
+      const data: NovelChaptersResponse = await res.json();
       setChapters(data.chapters);
-      setTotalPages(data.totalPages ?? 1);
+      setTotalPages(data.novel.totalPages);
       setCurrentPage(page);
       setSlug(targetSlug);
       setPanelState('loaded');
-    } catch {
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to load chapters. Retry shortly.');
       setPanelState('error');
     }
   }, []);
@@ -48,6 +50,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
   }, [initialSlug, loadChapters]);
 
   const openChapter = async (chSlug: string) => {
+    setChapterError('');
     setChapterLoading(true);
     setChapterContent(null);
     try {
@@ -58,6 +61,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
       const data: NFChapterContent = await res.json();
       setChapterContent(data);
     } catch {
+      setChapterError('Unable to load this chapter. Retry it or choose another chapter.');
       setChapterContent(null);
     } finally {
       setChapterLoading(false);
@@ -167,6 +171,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
                   fontFamily: '"Georgia", serif',
                   fontSize: '1rem',
                   lineHeight: 1.9,
+                  whiteSpace: 'pre-line',
                   color: 'var(--paper)',
                   marginBottom: '1rem',
                   maxWidth: '68ch',
@@ -267,14 +272,13 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
       {panelState === 'error' && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px', padding: '2rem', textAlign: 'center' }}>
           <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.8rem', color: 'var(--muted)', margin: 0 }}>
-            Not found on NovelFire as{' '}
-            <code style={{ fontFamily: 'monospace', color: 'var(--paper-2)', fontSize: '0.75rem' }}>{slug}</code>.
+            {errorMessage}
           </p>
           <p style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.72rem', color: 'var(--muted)', margin: 0 }}>
             Edit the slug above and click <strong style={{ color: 'var(--paper-2)' }}>Load</strong>.
           </p>
           <a
-            href={`https://novelfire.net/search?q=${encodeURIComponent(novelTitle)}`}
+            href={`https://novelfire.net/search?keyword=${encodeURIComponent(novelTitle)}&type=title`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--red)', textDecoration: 'none', marginTop: '4px' }}
@@ -284,6 +288,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
         </div>
       )}
 
+      {chapterError && <p role="alert" style={{ padding: '1rem' }}>{chapterError}</p>}
       {/* Loaded — chapter list */}
       {panelState === 'loaded' && (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -330,9 +335,9 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
                   {ch.title}
                 </span>
               </div>
-              {ch.releaseDate && (
+              {ch.timeAgo && (
                 <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.5rem', color: 'var(--border-2)', flexShrink: 0 }}>
-                  {ch.releaseDate}
+                  {ch.timeAgo}
                 </span>
               )}
             </button>

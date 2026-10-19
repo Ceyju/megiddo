@@ -1,7 +1,7 @@
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export class UpstreamError extends Error {
-  constructor(message: string, public readonly status = 502) {
+  constructor(message: string, public readonly status = 502, public readonly upstreamStatus?: number) {
     super(message);
     this.name = "UpstreamError";
   }
@@ -49,7 +49,7 @@ export async function outboundFetch<T = unknown>(input: string, options: Outboun
   const { allowedOrigins, timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes, expectedType, ...init } = options;
   const url = checkedUrl(input, allowedOrigins);
   const response = await fetch(url, { ...init, signal: AbortSignal.timeout(Math.min(12_000, Math.max(8_000, timeoutMs))) });
-  if (!response.ok) throw new UpstreamError(`Upstream returned ${response.status}`);
+  if (!response.ok) throw new UpstreamError(`Upstream returned ${response.status}`, 502, response.status);
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   const typeAllowed = expectedType === "json"
     ? contentType.includes("application/json")

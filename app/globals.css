@@ -52,7 +52,7 @@ body.player-theater-open { overflow: hidden; }
 .provider-timeout strong { color: var(--paper); font: 1.6rem/1 var(--font-display, Impact); letter-spacing: 0.06em; text-transform: uppercase; }
 .provider-timeout > span { max-width: 34rem; font-size: 0.75rem; line-height: 1.5; }
 .provider-timeout-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; }
-.player-frame-actions { display: flex; justify-content: flex-end; align-items: center; gap: 0.35rem; padding: 0.4rem 0.5rem; background: var(--surface); border-top: 0px solid var(--border); }
+.player-frame-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; background: var(--surface); border-top: 0px solid var(--border); }
 .player-external-link { min-height: 44px; display: inline-flex; align-items: center; padding: 0.45rem 0.65rem; color: var(--paper-2); font: 0.62rem var(--font-condensed, Arial); letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
 .player-external-link:hover { color: var(--paper); }
 .player-fullscreen-button { min-height: 44px; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.65rem; border: 1px solid var(--border-2); background: transparent; color: var(--paper); font: 700 0.62rem var(--font-condensed, Arial); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }

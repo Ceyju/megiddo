@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { parseChapterContent } from '@/lib/novelfire';
 import NovelFireReader from '@/components/NovelFireReader';
+import { chapterSlug as validChapterSlug, slug as validSlug } from '@/lib/server/validation';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 
 interface Props {
   params: Promise<{ novelSlug: string; chapterSlug: string }>;
@@ -14,10 +16,13 @@ export async function generateMetadata({ params }: Props) {
 export default async function ChapterPage({ params }: Props) {
   const { novelSlug, chapterSlug } = await params;
 
-  if (!/^[a-z0-9-]{1,80}$/.test(novelSlug) || !/^chapter-\d+$/.test(chapterSlug))
-    return notFound();
-
-  const chapter = await parseChapterContent(novelSlug, chapterSlug);
+  try { validSlug(novelSlug); validChapterSlug(chapterSlug); } catch { return notFound(); }
+  let chapter;
+  try {
+    chapter = await parseChapterContent(novelSlug, chapterSlug);
+  } catch {
+    return <ProviderUnavailable backHref={`/webnovels/${novelSlug}`} backLabel="All chapters" retryHref={`/webnovels/${novelSlug}/${chapterSlug}`} />;
+  }
   if (!chapter) return notFound();
 
   return (

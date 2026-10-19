@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PLAYER_FRAME_ORIGINS } from './lib/embed-providers';
 
 const isProduction = process.env.NODE_ENV === "production";
 const csp = [
@@ -10,7 +11,7 @@ const csp = [
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
   "worker-src 'self' blob:",
-  "frame-src https://vidfast.pro https://vidfast.vc https://vidlink.pro https://dropfile.cc https://mangaplus.shueisha.co.jp",
+  `frame-src ${PLAYER_FRAME_ORIGINS.join(' ')} https://mangaplus.shueisha.co.jp`,
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

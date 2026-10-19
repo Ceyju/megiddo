@@ -3,6 +3,7 @@ import { getNovelChapters } from "@/lib/novelfire";
 import { apiError, ValidationError } from "@/lib/server/api";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/server/rate-limit";
 import { boundedInteger, slug as validSlug } from "@/lib/server/validation";
+import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
     headers.set("Cache-Control", "s-maxage=1800, stale-while-revalidate=3600");
     return NextResponse.json(data, { headers });
   } catch (error) {
+    if (error instanceof ProviderNotFoundError) return apiError('NOT_FOUND', error.message, 404);
     if (error instanceof ValidationError) return apiError(error.code, error.message, 400);
     return apiError("UPSTREAM_FAILURE", "Failed to fetch chapters", 502);
   }

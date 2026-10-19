@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getNovelChapters } from '@/lib/novelfire';
 import NovelChapterList from '@/components/NovelChapterList';
+import { ProviderNotFoundError } from '@/lib/server/provider-errors';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 
 interface Props {
   params: Promise<{ novelSlug: string }>;
@@ -30,8 +32,9 @@ export default async function NovelChaptersPage({ params }: Props) {
   let data: Awaited<ReturnType<typeof getNovelChapters>>;
   try {
     data = await getNovelChapters(novelSlug, 1);
-  } catch {
-    return notFound();
+  } catch (error) {
+    if (error instanceof ProviderNotFoundError) return notFound();
+    return <ProviderUnavailable backHref="/webnovels" backLabel="All novels" retryHref={`/webnovels/${novelSlug}`} />;
   }
 
   const { novel, chapters } = data;

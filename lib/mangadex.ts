@@ -1,13 +1,17 @@
-//move to env
-const BASE = process.env.MANGADEX_API_BASE;
-const UPLOADS = process.env.MANGADEX_UPLOADS_BASE;
+import { UpstreamError } from './server/outbound';
+import { ProviderNotFoundError } from './server/provider-errors';
+
+const BASE = process.env.MANGADEX_API_BASE ?? 'https://api.mangadex.org';
+const UPLOADS = process.env.MANGADEX_UPLOADS_BASE ?? 'https://uploads.mangadex.org';
 
 const HEADERS: Record<string, string> = {
   'User-Agent': process.env.USER_AGENT ?? 'Mozilla/5.0 (compatible; anime-app/1.0)',
 };
 
 async function mdFetch(url: string, opts: RequestInit = {}): Promise<Response> {
-  return fetch(url, { ...opts, headers: { ...HEADERS, ...(opts.headers as object ?? {}) } });
+  try {
+    return await fetch(url, { ...opts, signal: AbortSignal.timeout(10_000), headers: { ...HEADERS, ...(opts.headers as object ?? {}) } });
+  } catch { throw new UpstreamError('MangaDex is temporarily unavailable'); }
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -283,8 +287,8 @@ export async function searchManga(q: string, limit = 20): Promise<MDManga[]> {
   url.searchParams.set('hasAvailableChapters', 'true');
   url.searchParams.set('order[relevance]', 'desc');
 
-  const res = await fetch(url.toString(), { next: { revalidate: 300 } })
-  if (!res.ok) return [];
+  const res = await mdFetch(url.toString(), { next: { revalidate: 300 } });
+  if (!res.ok) throw new UpstreamError('MangaDex search is temporarily unavailable', 502, res.status);
   const json = await res.json();
   return (json.data as Record<string, unknown>[]).map(parseManga);
 }
@@ -299,8 +303,8 @@ export async function getPopularManga(limit = 24): Promise<MDManga[]> {
   url.searchParams.set('hasAvailableChapters', 'true');
   url.searchParams.set('order[followedCount]', 'desc');
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) return [];
+  const res = await mdFetch(url.toString(), { next: { revalidate: 3600 } });
+  if (!res.ok) throw new UpstreamError('MangaDex catalog is temporarily unavailable', 502, res.status);
   const json = await res.json();
   return (json.data as Record<string, unknown>[]).map(parseManga);
 }
@@ -316,7 +320,7 @@ export async function getLatestManga(limit = 24): Promise<MDManga[]> {
   url.searchParams.set('order[latestUploadedChapter]', 'desc');
 
   const res = await mdFetch(url.toString(), { next: { revalidate: 600 } });
-  if (!res.ok) return [];
+  if (!res.ok) throw new UpstreamError('MangaDex catalog is temporarily unavailable', 502, res.status);
   const json = await res.json();
   return (json.data as Record<string, unknown>[]).map(parseManga);
 }
@@ -324,7 +328,8 @@ export async function getLatestManga(limit = 24): Promise<MDManga[]> {
 export async function getMangaById(id: string): Promise<MDManga | null> {
   const url = `${BASE}/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`;
   const res = await mdFetch(url, { next: { revalidate: 3600 } });
-  if (!res.ok) return null;
+  if (res.status === 404 || res.status === 410) return null;
+  if (!res.ok) throw new UpstreamError('MangaDex metadata is temporarily unavailable', 502, res.status);
   const json = await res.json();
   return parseManga(json.data);
 }
@@ -333,14 +338,15 @@ export async function getMangaChapters(
   mangaId: string,
   offset = 0,
   limit = 96
-): Promise<{ chapters: MDChapter[]; total: number; readableTotal: number }> {
-  const inventory = await getAllMangaChapterInventory(mangaId);
+): Promise<{ chapters: MDChapter[]; total: number; readableTotal: number; complete: boolean }> {
+  const { chapters: inventory, complete } = await getMangaChapterInventory(mangaId);
   const safeOffset = Math.max(0, offset);
   const safeLimit = Math.min(Math.max(1, limit), 100);
   return {
     chapters: inventory.slice(safeOffset, safeOffset + safeLimit),
     total: inventory.length,
     readableTotal: inventory.filter((chapter) => chapter.availability !== 'unavailable').length,
+    complete,
   };
 }
 
@@ -349,19 +355,25 @@ export async function getChapterPages(chapterId: string): Promise<MDPage[]> {
     const res = await mdFetch(`${BASE}/at-home/server/${chapterId}`, {
       cache: 'no-store',
     });
-    if (!res.ok) return [];
+    if (res.status === 404 || res.status === 410) throw new ProviderNotFoundError('Chapter pages are no longer available');
+    if (!res.ok) throw new UpstreamError('MangaDex page request failed', 502, res.status);
     const json = await res.json();
-    if (json.result === 'error' || !json.chapter?.data?.length) return [];
+    if (json.result === 'error') throw new UpstreamError('MangaDex returned a page error');
+    if (!Array.isArray(json.chapter?.data) || !json.chapter.data.length) throw new ProviderNotFoundError('Chapter pages are unavailable');
     const { baseUrl, chapter } = json as {
       baseUrl: string;
       chapter: { hash: string; data: string[]; dataSaver: string[] };
     };
+    if (!baseUrl || !chapter.hash || !Array.isArray(chapter.dataSaver)) throw new UpstreamError('MangaDex returned malformed page data');
+    const server = new URL(baseUrl);
+    if (server.protocol !== 'https:' || server.username || server.password) throw new UpstreamError('MangaDex returned an invalid image server');
     return chapter.data.map((filename, i) => ({
       url: `${baseUrl}/data/${chapter.hash}/${filename}`,
-      dataSaver: `${baseUrl}/data-saver/${chapter.hash}/${chapter.dataSaver[i]}`,
+      dataSaver: chapter.dataSaver[i] ? `${baseUrl}/data-saver/${chapter.hash}/${chapter.dataSaver[i]}` : `${baseUrl}/data/${chapter.hash}/${filename}`,
     }));
-  } catch {
-    return [];
+  } catch (error) {
+    if (error instanceof ProviderNotFoundError || error instanceof UpstreamError) throw error;
+    throw new UpstreamError('MangaDex page request failed');
   }
 }
 
@@ -379,9 +391,10 @@ export async function getChapterInfo(chapterId: string): Promise<{
       `${BASE}/chapter/${chapterId}?includes[]=scanlation_group`,
       { next: { revalidate: 3600 } },
     );
-    if (!res.ok) return null;
+    if (res.status === 404 || res.status === 410) return null;
+    if (!res.ok) throw new UpstreamError('MangaDex chapter request failed', 502, res.status);
     const json = await res.json();
-    if (json.result === 'error' || !json.data) return null;
+    if (json.result === 'error' || !json.data) throw new UpstreamError('MangaDex returned malformed chapter data');
     const item = json.data as Record<string, unknown>;
     const attr = item.attributes as Record<string, unknown>;
     const rels = (item.relationships as Array<{ type: string; id: string; attributes?: { name?: string } }>) ?? [];
@@ -391,8 +404,9 @@ export async function getChapterInfo(chapterId: string): Promise<{
       chapterNumber: (attr.chapter as string | null) ?? null,
       asChapter: parseChapter(item),
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    throw new UpstreamError('MangaDex chapter request failed');
   }
 }
 
@@ -405,7 +419,7 @@ export async function getTrendingManga(limit = 24): Promise<MDManga[]> {  const 
   url.searchParams.set('hasAvailableChapters', 'true');
   url.searchParams.set('order[rating]', 'desc');
   const res = await mdFetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) return [];
+  if (!res.ok) throw new UpstreamError('MangaDex catalog is temporarily unavailable', 502, res.status);
   const json = await res.json();
   return (json.data as Record<string, unknown>[]).map(parseManga);
 }
@@ -479,6 +493,7 @@ export async function findMangaForCatalogEntry(target: MDManga): Promise<MDManga
     ...target.altTitles,
   ].filter((term): term is string => Boolean(term)))).slice(0, 5);
   const candidates = new Map<string, MDManga>();
+  let receivedResults = false;
 
   for (const term of terms) {
     try {
@@ -493,6 +508,8 @@ export async function findMangaForCatalogEntry(target: MDManga): Promise<MDManga
       const res = await mdFetch(url.toString(), { next: { revalidate: 300 } });
       if (!res.ok) continue;
       const json = await res.json();
+      if (!Array.isArray(json.data)) continue;
+      receivedResults = true;
       for (const item of (json.data as Record<string, unknown>[]) ?? []) {
         const parsed = parseManga(item);
         candidates.set(parsed.id, parsed);
@@ -504,6 +521,7 @@ export async function findMangaForCatalogEntry(target: MDManga): Promise<MDManga
     }
   }
 
+  if (terms.length > 0 && !receivedResults) throw new UpstreamError('MangaDex matching is temporarily unavailable');
   return selectBestMangaMatch(Array.from(candidates.values()), target);
 }
 
@@ -532,17 +550,26 @@ export async function findMangaByTitle(
  * Used for prev/next navigation in the reader.
  */
 export async function getAllMangaChapterInventory(mangaId: string): Promise<MDChapter[]> {
+  return (await getMangaChapterInventory(mangaId)).chapters;
+}
+
+export interface MangaChapterInventory {
+  chapters: MDChapter[];
+  complete: boolean;
+}
+
+export async function getMangaChapterInventory(mangaId: string): Promise<MangaChapterInventory> {
   const [hosted, external] = await Promise.all([
     getMangaChapterInventoryByExternalFlag(mangaId, false),
     getMangaChapterInventoryByExternalFlag(mangaId, true),
   ]);
-  return deduplicateMangaChapters([...hosted, ...external]);
+  return { chapters: deduplicateMangaChapters([...hosted.chapters, ...external.chapters]), complete: hosted.complete && external.complete };
 }
 
 async function getMangaChapterInventoryByExternalFlag(
   mangaId: string,
   includeExternalUrl: boolean,
-): Promise<MDChapter[]> {
+): Promise<MangaChapterInventory> {
   const BATCH = 100;
   const all: MDChapter[] = [];
   let offset = 0;
@@ -556,23 +583,23 @@ async function getMangaChapterInventoryByExternalFlag(
       url.searchParams.set('limit', String(BATCH));
       url.searchParams.set('offset', String(offset));
       url.searchParams.set('includes[]', 'scanlation_group');
-      // MangaDex treats this as a filter: false returns hosted chapters and
-      // true returns external chapters. Both feeds are merged by the caller.
+      // Merge and deduplicate hosted-only and external-inclusive inventories.
       url.searchParams.set('includeExternalUrl', includeExternalUrl ? '1' : '0');
       url.searchParams.set('contentRating[]', 'safe');
       url.searchParams.append('contentRating[]', 'suggestive');
       const res = await mdFetch(url.toString(), { next: { revalidate: 600 } });
-      if (!res.ok) break;
+      if (!res.ok) return { chapters: all, complete: false };
       const json = await res.json();
       total = json.total as number;
+      if (!Number.isSafeInteger(total) || total < 0 || !Array.isArray(json.data)) return { chapters: all, complete: false };
       const raw = (json.data as Array<Record<string, unknown>>).map(parseChapter);
       all.push(...raw);
+      offset += raw.length;
       if (raw.length < BATCH) break;
-      offset += BATCH;
-    } catch { break; }
+    } catch { return { chapters: all, complete: false }; }
   }
 
-  return all;
+  return { chapters: all, complete: offset >= total };
 }
 
 /** Hosted chapters only, for internal reader previous/next navigation. */

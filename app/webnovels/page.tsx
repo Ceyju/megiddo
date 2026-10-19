@@ -4,14 +4,16 @@ import Link from 'next/link';
 import {
   getPopularNovels,
   getTopUpdatedNovels,
-  getTopReadMonthly,
+  getMostReadNovels,
   getTopRatedNovels,
+  searchNovels,
   type NFListNovel,
 } from '@/lib/novelfire';
 import NFNovelCard from '@/components/NovelReleaseCard';
 import NFRecommendCard from '@/components/NFRecommendCard';
 import NovelHeroCarousel from '@/components/NovelHeroCarousel';
 import MediaCardGrid from '@/components/MediaCardGrid';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 
 export const revalidate = 1800;
 
@@ -186,22 +188,36 @@ function NovelGrid({ novels }: { novels: NFListNovel[] }) {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default async function WebNovelsPage() {
-  const [popularRaw, monthly, updatedRaw, ratedRaw] = await Promise.all([
-    getPopularNovels(),
-    getTopReadMonthly(),
-    getTopUpdatedNovels(),
-    getTopRatedNovels(),
+export default async function WebNovelsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? '';
+  if (query) {
+    if (query.length > 100) return <ProviderUnavailable title="Search query is too long" message="Use 100 characters or fewer." backHref="/webnovels" backLabel="Browse novels" />;
+    let matches;
+    try { matches = await searchNovels(query); }
+    catch { return <ProviderUnavailable title="Novel search temporarily unavailable" backHref="/webnovels" backLabel="Browse novels" retryHref={`/webnovels?q=${encodeURIComponent(query)}`} />; }
+    const novels: NFListNovel[] = matches.map(match => ({
+      slug: match.slug, title: match.title, coverUrl: match.cover, status: match.status,
+      genres: [], latestChapter: null, views: null, rating: null,
+    }));
+    return (
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Search results for “{query}”</h1>
+        <Link href="/webnovels">Browse all novels</Link>
+        {novels.length ? <NovelGrid novels={novels} /> : <p role="status" style={{ padding: '2rem 0' }}>No novels found. Try a different title.</p>}
+      </div>
+    );
+  }
+  const sections = await Promise.allSettled([
+    getPopularNovels(), getMostReadNovels(), getTopUpdatedNovels(), getTopRatedNovels(),
   ]);
-
-  // Graceful fallbacks — sections never render empty when any source has data
-  const anyData = monthly.length > 0 ? monthly : popularRaw;
-  const popular = popularRaw.length > 0 ? popularRaw : anyData;
-  const updated = updatedRaw.length > 0 ? updatedRaw : popular;
-  const rated   = ratedRaw.length   > 0 ? ratedRaw   : monthly;
+  const [popular, mostRead, updated, rated] = sections.map(result => result.status === 'fulfilled' ? result.value : []);
+  const hasFailure = sections.some(result => result.status === 'rejected');
 
   return (
     <div style={{ maxWidth: '2000px', margin: '0 auto', padding: '0 0 5rem' }}>
+
+      {hasFailure && <p role="status" style={{ padding: '1rem 1.5rem' }}>Some novel lists are temporarily unavailable. <Link href="/webnovels">Retry lists</Link></p>}
 
       {/* ── Hero Carousel ──────────────────────────────────── */}
       <NovelHeroCarousel items={popular.slice(0, 6)} />
@@ -242,11 +258,11 @@ export default async function WebNovelsPage() {
             <RankingColumn
               title="Most Read"
               color="#0077BB"
-              items={monthly}
-              getStat={n => n.views ? `👁 ${n.views} (Monthly)` : null}
+              items={mostRead}
+              getStat={n => n.views ? `👁 ${n.views} (Most Read)` : null}
             />
             <RankingColumn
-              title="New Trend"
+              title="Recently Updated"
               color="#00999A"
               items={updated}
               getStat={n => n.latestChapter ?? null}
@@ -261,7 +277,7 @@ export default async function WebNovelsPage() {
         </Section>
 
         {/* ── 03 · Latest Novels ────────────────────────────── */}
-        <Section label="Latest Novels" accent="var(--lime)" number="03">
+        <Section label="Recently Updated" accent="var(--lime)" number="03">
           <Suspense fallback={<div style={{ height: '280px' }} />}>
             <NovelGrid novels={updated} />
           </Suspense>

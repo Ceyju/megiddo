@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { NFNovelInfo, NFChapter } from '@/lib/novelfire';
+import type { NFNovelInfo, NFChapter, NovelChaptersResponse } from '@/lib/novelfire';
 
 interface Props {
   slug: string;
@@ -33,9 +33,9 @@ export default function NovelChapterList({
           `/api/webnovel/chapters?slug=${encodeURIComponent(slug)}&page=${page}`,
         );
         if (!res.ok) throw new Error('fetch failed');
-        const data = await res.json();
+        const data: NovelChaptersResponse = await res.json();
         setChapters(data.chapters ?? []);
-        setTotalPages(data.totalPages ?? totalPages);
+        setTotalPages(data.novel.totalPages);
         setCurrentPage(page);
         document.getElementById('chapter-list-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch {
@@ -44,7 +44,7 @@ export default function NovelChapterList({
         setPaging(false);
       }
     },
-    [slug, totalPages],
+    [slug],
   );
 
   const renderPaginationBar = () => {
@@ -149,7 +149,7 @@ export default function NovelChapterList({
           onSubmit={(e) => {
             e.preventDefault();
             const val = (e.currentTarget.elements.namedItem('chNum') as HTMLInputElement).value;
-            const num = parseInt(val);
+            const num = Number(val);
             if (num > 0 && num <= 9999) router.push(`/webnovels/${slug}/chapter-${num}`);
           }}
           style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
@@ -171,6 +171,7 @@ export default function NovelChapterList({
             name="chNum"
             type="number"
             min={1}
+            step="any"
             placeholder="Ch. #"
             style={{
               width: '100px',

@@ -20,7 +20,7 @@ export interface EditorialSlide {
 }
 
 export default function EditorialHeroCarousel({ items, label }: { items: EditorialSlide[]; label: string }) {
-  const { current, goTo, next, previous, rootRef, progressRef, pause, resume, onKeyDown } = useEditorialCarousel(items.length);
+  const { current, goTo, rootRef, progressRef, pause, resume, onKeyDown } = useEditorialCarousel(items.length);
   if (!items.length) return null;
   const item = items[current];
   const background = item.background || item.image;
