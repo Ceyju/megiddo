@@ -2,11 +2,12 @@ import type { NextConfig } from "next";
 import { PLAYER_FRAME_ORIGINS } from './lib/embed-providers';
 
 const isProduction = process.env.NODE_ENV === "production";
+const enforceCsp = process.env.CSP_ENFORCE === "true";
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://s4.anilist.co https://img1.ak.crunchyroll.com https://media.kitsu.app https://uploads.mangadex.org https://books.google.com https://novelfire.net",
+  "img-src 'self' blob: data: https://s4.anilist.co https://img1.ak.crunchyroll.com https://media.kitsu.app https://uploads.mangadex.org https://books.google.com https://novelfire.net https://rs.novelbuddy.me",
   "media-src 'self' blob:",
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
@@ -16,11 +17,11 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  isProduction ? "upgrade-insecure-requests" : "",
+  isProduction && enforceCsp ? "upgrade-insecure-requests" : "",
 ].filter(Boolean).join("; ");
 
 const securityHeaders = [
-  { key: process.env.CSP_ENFORCE === "true" ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only", value: csp },
+  { key: enforceCsp ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -49,6 +50,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "uploads.mangadex.org" },
       { protocol: "https", hostname: "books.google.com" },
       { protocol: "https", hostname: "novelfire.net" },
+      { protocol: "https", hostname: "rs.novelbuddy.me" },
       { protocol: "https", hostname: "cm.blazefast.co" },
       { protocol: "https", hostname: "avt.mkklcdnv6temp.com" },
     ],

@@ -57,6 +57,22 @@ const upstream = createServer(async (req, res) => {
   if (url.pathname === '/mu/series/search') return send({ results: [{ record: publication }] });
   if (url.pathname === '/mu/series/1') return send(publication);
   if (url.pathname.startsWith('/gb/volumes/')) return send({ id: 'example', volumeInfo: { title: 'Example', authors: ['Example Author'], description, imageLinks: { thumbnail: image }, pageCount: 200 } });
+  if (url.pathname.startsWith('/nb/')) {
+    const novel = slug => ({ id: slug, slug, name: title, status: 'Completed', cover: 'https://rs.novelbuddy.me/covers/shadow-slave.png',
+      summary: description, authors: [{ name: 'Example Author' }], genres: [{ name: 'Fantasy' }], stats: { chapters_count: 3, views: 1000 }, rating: 4.8 });
+    const refs = [3, 2, 1].map(n => ({ id: `chapter${n}`, slug: `chapter-${n}-the-adventurer`, name: `Chapter ${n}: ${title}`, number: n }));
+    if (url.pathname === '/nb/titles/search') {
+      if (url.searchParams.get('q') === 'offline') return send({ success: false }, 503);
+      return send({ success: true, data: { items: url.searchParams.get('q') === 'empty' ? [] : Array.from({ length: 8 }, (_, i) => novel(i ? `example-${i}` : 'example')) } });
+    }
+    const slug = url.pathname.split('/')[4];
+    if (url.pathname.startsWith('/nb/titles/by-slug/')) return send(slug === 'offline' ? { success: false } : { success: true, data: { title: novel(slug) } }, slug === 'offline' ? 503 : 200);
+    if (url.pathname.endsWith('/chapters')) return send({ success: true, data: { chapters: refs } });
+    const ref = refs.find(c => url.pathname.endsWith(`/chapters/${c.id}`));
+    if (ref) return send({ success: true, data: { chapter: { ...ref, content: Array.from({ length: 30 }, () => `<p>${description}</p>`).join('') },
+      previous_chapter: refs.find(c => c.number === ref.number - 1) ?? null, next_chapter: refs.find(c => c.number === ref.number + 1) ?? null } });
+    return send({ success: false }, 404);
+  }
   if (url.pathname === '/nf/search' || url.pathname.includes('/ranking') || url.pathname === '/nf/latest-release-novels') {
     if (url.searchParams.get('keyword') === 'offline') return send('Unavailable', 503, 'text/html');
     return send(url.searchParams.get('keyword') === 'empty' ? '<ul class="novel-list"></ul>' : cards.replaceAll('/cover.svg', 'http://127.0.0.1:3101/cover.svg'), 200, 'text/html');
@@ -78,6 +94,7 @@ upstream.listen(3101, '127.0.0.1', () => {
       ANILIST_ENDPOINT: 'http://127.0.0.1:3101/graphql', MANGADEX_API_BASE: 'http://127.0.0.1:3101/md',
       MANGAUPDATES_API_BASE: 'http://127.0.0.1:3101/mu', GOOGLE_BOOKS_API_BASE: 'http://127.0.0.1:3101/gb',
       GOOGLE_BOOKS_API_KEY: '', NOVELFIRE_API_BASE: 'https://novelfire.net', NOVELFIRE_API_REFERER: 'https://novelfire.net/',
+      NOVEL_PROVIDER: 'novelbuddy', NOVELBUDDY_API_BASE: 'http://127.0.0.1:3101/nb',
       NEXT_TEST_DIST_DIR: '.next/responsive',
       UPSTASH_REDIS_REST_URL: '', UPSTASH_REDIS_REST_TOKEN: '', CSP_ENFORCE: 'false',
     },

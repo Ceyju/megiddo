@@ -43,7 +43,7 @@ export default function RootLayout({
         <footer className="border-t border-[--border] py-8 mt-16">
           <div className="w-full mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <span className="text-[--muted] text-xs font-body uppercase tracking-widest">
-              Powered by AniList, Kitsu, MangaDex, MangaUpdates, &amp; NovelFire
+              Powered by AniList, Kitsu, MangaDex, MangaUpdates, &amp; {process.env.NOVEL_PROVIDER === 'novelfire' ? 'NovelFire' : 'NovelBuddy'}
             </span>
           </div>
         </footer>

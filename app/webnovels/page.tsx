@@ -213,11 +213,16 @@ export default async function WebNovelsPage({ searchParams }: { searchParams: Pr
   ]);
   const [popular, mostRead, updated, rated] = sections.map(result => result.status === 'fulfilled' ? result.value : []);
   const hasFailure = sections.some(result => result.status === 'rejected');
+  if (sections.every(result => result.status === 'rejected')) {
+    return <ProviderUnavailable title="Novel library temporarily unavailable" message="The novel source did not respond. Please retry shortly." backHref="/" backLabel="Home" retryHref="/webnovels" />;
+  }
 
   return (
     <div style={{ maxWidth: '2000px', margin: '0 auto', padding: '0 0 5rem' }}>
 
-      {hasFailure && <p role="status" style={{ padding: '1rem 1.5rem' }}>Some novel lists are temporarily unavailable. <Link href="/webnovels">Retry lists</Link></p>}
+      {hasFailure && <p role="status" style={{ padding: '1rem 1.5rem' }}>Some novel lists are temporarily unavailable. {/* Full navigation retries failed server requests instead of reusing the router response. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/webnovels">Retry lists</a></p>}
 
       {/* ── Hero Carousel ──────────────────────────────────── */}
       <NovelHeroCarousel items={popular.slice(0, 6)} />

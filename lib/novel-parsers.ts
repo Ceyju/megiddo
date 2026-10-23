@@ -51,6 +51,17 @@ export function stripTags(html: string): string {
   return clean($.root().text());
 }
 
+export function readStoryParagraphs(html: string): string[] {
+  const $ = load(html);
+  $('script,style,iframe,ins,nav,button,select,.nf-ads,.ads,.advertisement,.chapternav').remove();
+  $('br').replaceWith('\n');
+  $('p,div,blockquote,h2,h3,li').each((_, el) => {
+    $(el).before('\n\n');
+    $(el).after('\n\n');
+  });
+  return $.root().text().split(/\n\s*\n/).map(text => text.split('\n').map(line => line.replace(/[\t\r ]+/g, ' ').trim()).join('\n').trim()).filter(Boolean);
+}
+
 export function readNovelHtml(html: string, slug: string, base: string): NFNovel {
   const $ = document(html);
   const header = $('.novel-header').first();
@@ -107,14 +118,7 @@ export function readChapterHtml(html: string, slug: string, chapterSlug: string,
   // The inner content excludes advertising and the restore-scroll toolbar.
   const content = $('#chapter-container #content, #chr-content, .chapter-content, .reading-content').first();
   required(content.length > 0, 'chapter');
-  const story = content.clone();
-  story.find('script,style,iframe,ins,nav,button,select,.nf-ads,.ads,.advertisement,.chapternav').remove();
-  story.find('br').replaceWith('\n');
-  story.find('p,div,blockquote,h2,h3,li').each((_, el) => {
-    $(el).before('\n\n');
-    $(el).after('\n\n');
-  });
-  const paragraphs = story.text().split(/\n\s*\n/).map(text => text.split('\n').map(line => line.replace(/[\t\r ]+/g, ' ').trim()).join('\n').trim()).filter(Boolean);
+  const paragraphs = readStoryParagraphs(content.html() ?? '');
   required(paragraphs.length > 0, 'chapter content');
   const rawTitle = clean($('.chapter-title').first().text()) || extractMeta(html, 'og:title') || chapterSlug;
   let title = rawTitle.replace(/\s*[-|]\s*Novel\s*Fire\s*$/i, '');

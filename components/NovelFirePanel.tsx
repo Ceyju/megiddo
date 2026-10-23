@@ -219,7 +219,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
         }}
       >
         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />
-        <span style={labelStyle}>NOVELFIRE</span>
+        <span style={labelStyle}>NOVEL READER</span>
 
         <form
           onSubmit={e => { e.preventDefault(); loadChapters(slugInput); }}
@@ -278,12 +278,10 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
             Edit the slug above and click <strong style={{ color: 'var(--paper-2)' }}>Load</strong>.
           </p>
           <a
-            href={`https://novelfire.net/search?keyword=${encodeURIComponent(novelTitle)}&type=title`}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`/webnovels?q=${encodeURIComponent(novelTitle)}`}
             style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--red)', textDecoration: 'none', marginTop: '4px' }}
           >
-            Search on NovelFire ↗
+            Search novel library →
           </a>
         </div>
       )}
