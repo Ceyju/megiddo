@@ -6,6 +6,7 @@ import { getNovelChapters } from '@/lib/novelfire';
 import NovelChapterList from '@/components/NovelChapterList';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
+import { isNovelSlug } from '@/lib/novel-slug';
 
 interface Props {
   params: Promise<{ novelSlug: string }>;
@@ -13,6 +14,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { novelSlug } = await params;
+  if (!isNovelSlug(novelSlug)) return { title: 'Novel — Megiddo' };
   try {
     const { novel } = await getNovelChapters(novelSlug, 1);
     return {
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: Props) {
 export default async function NovelChaptersPage({ params }: Props) {
   const { novelSlug } = await params;
 
-  if (!/^[a-z0-9-]{1,80}$/.test(novelSlug)) return notFound();
+  if (!isNovelSlug(novelSlug)) return notFound();
 
   let data: Awaited<ReturnType<typeof getNovelChapters>>;
   try {

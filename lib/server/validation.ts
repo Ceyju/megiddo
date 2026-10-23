@@ -1,4 +1,5 @@
 import { ValidationError } from "./api";
+import { isNovelSlug } from '../novel-slug';
 
 const GENRES = new Set([
   "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Horror",
@@ -6,7 +7,6 @@ const GENRES = new Set([
   "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller",
 ]);
 
-const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PROVIDER_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9:_-]{0,119}$/;
 
@@ -41,7 +41,7 @@ export function imdbId(value: string | null) {
 }
 
 export function slug(value: string | null, name = "slug") {
-  if (!value || !SLUG_RE.test(value)) throw new ValidationError(`Invalid ${name}`);
+  if (!isNovelSlug(value)) throw new ValidationError(`Invalid ${name}`);
   return value;
 }
 

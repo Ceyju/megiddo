@@ -1,6 +1,7 @@
 import { load, type CheerioAPI } from 'cheerio';
 import type { NFNovel, NFChapterRef, NFChapterContent, NFListNovel } from './novelfire';
 import { UpstreamError } from './server/outbound';
+import { isNovelSlug } from './novel-slug';
 
 const clean = (value: string) => value.replace(/\s+/g, ' ').trim();
 const count = (value: string | undefined) => {
@@ -156,7 +157,7 @@ export function readNovelListHtml(html: string, base: string, limit = 20) {
     const resolved = httpsUrl(anchor.attr('href'), base);
     if (!resolved) return;
     const slug = new URL(resolved).pathname.split('/')[2];
-    if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug) || seen.has(slug)) return;
+    if (!isNovelSlug(slug) || seen.has(slug)) return;
     seen.add(slug);
     const title = clean(card.find('.novel-title, .title').first().text() || anchor.attr('title') || anchor.text());
     if (!title) return;

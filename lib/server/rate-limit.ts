@@ -16,6 +16,7 @@ export interface RateLimitResult {
 }
 
 const limits = { search: 30, novel: 20 };
+const REDIS_TIMEOUT_MS = 5_000;
 const limiters = new Map<string, Ratelimit>();
 const localWindows = new Map<string, { count: number; reset: number }>();
 let redis: Redis | undefined;
@@ -46,17 +47,17 @@ async function checkBucket(bucket: string, key: string, limit: number): Promise<
     return localLimit(bucket, key, limit);
   }
   try {
-    redis ??= new Redis({ url, token, retry: false, signal: () => AbortSignal.timeout(1_500) });
+    redis ??= new Redis({ url, token, retry: false, signal: () => AbortSignal.timeout(REDIS_TIMEOUT_MS + 1_000) });
     const id = `${bucket}:${limit}`;
     let limiter = limiters.get(id);
     if (!limiter) {
-      limiter = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(limit, "1 m"), prefix: `megiddo:${bucket}:${limit}`, timeout: 1_000 });
+      limiter = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(limit, "1 m"), prefix: `megiddo:${bucket}:${limit}`, timeout: REDIS_TIMEOUT_MS });
       limiters.set(id, limiter);
     }
     const result = await limiter.limit(key);
     // Upstash's timeout is fail-open unless its reason is checked explicitly.
     if (result.reason === "timeout") {
-      console.error('[rate-limit]', { bucket, reason: 'timeout' });
+      console.error(`[rate-limit] ${JSON.stringify({ bucket, reason: 'timeout' })}`);
       return unavailable("unavailable", limit);
     }
     return { allowed: result.success, status: "active", statusCode: result.success ? 200 : 429, limit: result.limit, remaining: result.remaining, reset: result.reset };
@@ -68,7 +69,7 @@ async function checkBucket(bucket: string, key: string, limit: number): Promise<
       : /NOPERM|permission|read.?only/i.test(message) ? 'permissions'
       : /quota|(?:monthly|daily|request|command).*limit.*exceed/i.test(message) ? 'quota'
       : /timeout|abort/i.test(error instanceof Error ? error.name : '') ? 'timeout' : 'connection';
-    console.error('[rate-limit]', { bucket, reason });
+    console.error(`[rate-limit] ${JSON.stringify({ bucket, reason })}`);
     return unavailable("unavailable", limit);
   }
 }

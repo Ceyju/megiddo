@@ -3,6 +3,7 @@ import { readStoryParagraphs, stripTags } from './novel-parsers';
 import { serverBaseUrl } from './server/env';
 import { outboundFetch, UpstreamError } from './server/outbound';
 import { ProviderNotFoundError } from './server/provider-errors';
+import { isNovelSlug } from './novel-slug';
 
 interface Chapter {
   id: string;
@@ -53,7 +54,7 @@ async function request<T>(path: string, operation: string, maxBytes = 1_048_576)
 }
 
 function checkedTitle(value: Title): Title {
-  required(value && typeof value.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value.id) && typeof value.slug === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value.slug) && typeof value.name === 'string' && value.name.trim(), 'invalid title metadata');
+  required(value && typeof value.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value.id) && isNovelSlug(value.slug) && typeof value.name === 'string' && value.name.trim(), 'invalid title metadata');
   return value;
 }
 
