@@ -34,7 +34,11 @@ export default function Navbar() {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    if (isManga) router.push(`/manga/search?q=${encodeURIComponent(q)}`);
+    if (isManga) {
+      const source = new URLSearchParams(window.location.search).get('source');
+      const suffix = source === 'atsumaru' || pathname.startsWith('/manga/atsumaru') ? '&source=atsumaru' : '';
+      router.push(`/manga/search?q=${encodeURIComponent(q)}${suffix}`);
+    }
     else if (isNovels) router.push(`/webnovels?q=${encodeURIComponent(q)}`);
     else router.push(`/search?q=${encodeURIComponent(q)}`);
     setQuery("");

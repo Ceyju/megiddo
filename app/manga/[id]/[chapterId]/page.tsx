@@ -8,6 +8,7 @@ import {
 import {
   getReadableChapterNavigation,
   mangaDexPageProvider,
+  atsumaruPageProvider,
   resolveExternalReaderPolicy,
 } from '@/lib/manga-reader-providers';
 import { getMangaByIdAL } from '@/lib/anilist';
@@ -17,6 +18,7 @@ import MangaReader from '@/components/MangaReader';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import { uuid, providerId } from '@/lib/server/validation';
+import { atsumaruId, getAtsumaruChapterInventory } from '@/lib/atsumaru';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,14 +26,14 @@ interface Props {
   params: Promise<{ id: string; chapterId: string }>;
 }
 
-function ProviderBadge({ source }: { source: string }) {
+function ProviderBadge({ source, images = 'MANGADEX' }: { source: string; images?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0 2px', gap: '6px' }}>
       <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.58rem', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 10px', border: '1px solid var(--border-2)', color: 'var(--muted)' }}>
         {source}
       </span>
       <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.58rem', letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 10px', background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--paper-2)' }}>
-        IMAGES · MANGADEX
+        IMAGES · {images}
       </span>
     </div>
   );
@@ -62,6 +64,26 @@ export default async function MangaReaderPage({ params }: Props) {
   const { id: rawMangaId, chapterId: rawChapterId } = await params;
   const mangaId = decodeURIComponent(rawMangaId);
   const chapterId = decodeURIComponent(rawChapterId);
+
+  if (mangaId.startsWith('atsumaru:')) {
+    try { atsumaruId(mangaId); atsumaruId(chapterId); } catch { return notFound(); }
+    let data;
+    let navigation;
+    let pages;
+    try {
+      data = await getAtsumaruChapterInventory(mangaId, chapterId);
+      navigation = data && getReadableChapterNavigation(data.chapters, chapterId);
+      if (!navigation || !atsumaruPageProvider.canHandle(navigation.current)) throw new ProviderNotFoundError();
+      pages = await atsumaruPageProvider.resolvePages(chapterId, { mangaId, chapter: navigation.current });
+    } catch (error) {
+      return <ProviderUnavailable title={error instanceof ProviderNotFoundError ? 'Chapter unavailable' : 'Atsumaru temporarily unavailable'}
+        backHref={`/manga/${encodeURIComponent(mangaId)}`} backLabel="All chapters" retryHref={`/manga/${encodeURIComponent(mangaId)}/${encodeURIComponent(chapterId)}`} />;
+    }
+    return <><ProviderBadge source="ATSUMARU" images="ATSUMARU" />{!data!.complete && <p role="status">Chapter navigation is incomplete. Check the chapter list for updates.</p>}<MangaReader pages={pages} mangaId={mangaId} chapterId={chapterId}
+      chapterNumber={navigation.current.chapter} prevChapterId={navigation.previousId} nextChapterId={navigation.nextId}
+      providerLabel="Atsumaru" scanlationGroup={navigation.current.scanlationGroup} inventoryComplete={data!.complete}
+      chaptersHref={`/manga/${encodeURIComponent(mangaId)}?translation=${encodeURIComponent(data!.translation!)}`} /></>;
+  }
 
   // Kitsu's old chapter IDs were publication metadata, not verified inventory.
   if (chapterId.startsWith('kitsu-ch:')) {

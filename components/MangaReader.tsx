@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { MDPage } from "@/lib/mangadex";
@@ -14,20 +14,22 @@ interface Props {
   nextChapterId: string | null;
   scanlationGroup?: string | null;
   inventoryComplete?: boolean;
+  providerLabel?: string;
+  chaptersHref?: string;
 }
 
-export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId, scanlationGroup, inventoryComplete = true }: Props) {
+export default function MangaReader({ pages, mangaId, chapterNumber, prevChapterId, nextChapterId, scanlationGroup, inventoryComplete = true, providerLabel = 'MangaDex', chaptersHref = `/manga/${mangaId}` }: Props) {
   const [quality, setQuality] = useState<"normal" | "datasaver">("normal");
-  const [loaded, setLoaded] = useState<Record<number, boolean>>({});
-
-  const onLoad = useCallback((i: number) => setLoaded(prev => ({ ...prev, [i]: true })), []);
+  const [status, setStatus] = useState<Record<string, 'loaded' | 'error'>>({});
+  const [attempts, setAttempts] = useState<Record<number, number>>({});
+  const hasDataSaver = pages.some(page => page.dataSaver && page.dataSaver !== page.url);
 
   return (
     <div style={{ background: "var(--ink)", minHeight: "100vh" }}>
 
       {/* Controls bar */}
       <div className="reader-toolbar" style={{ background: "rgba(11,10,8,0.95)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "6px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.6rem", letterSpacing: "0.1em", color: "var(--muted)", textDecoration: "none", textTransform: "uppercase" }}>
+        <Link href={chaptersHref} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.6rem", letterSpacing: "0.1em", color: "var(--muted)", textDecoration: "none", textTransform: "uppercase" }}>
           ‹ BACK
         </Link>
         <span style={{ fontFamily: "var(--font-display, Impact)", fontSize: "0.85rem", letterSpacing: "0.08em", color: "var(--paper)" }}>
@@ -39,13 +41,13 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
         </span>
 
         {/* Quality toggle */}
-        <div style={{ display: "flex", gap: "3px", marginLeft: "auto" }}>
+        {hasDataSaver && <div style={{ display: "flex", gap: "3px", marginLeft: "auto" }}>
           {(["normal", "datasaver"] as const).map(q => (
             <button key={q} onClick={() => setQuality(q)} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.55rem", letterSpacing: "0.1em", textTransform: "uppercase", padding: "3px 9px", cursor: "pointer", border: quality === q ? "1px solid var(--paper)" : "1px solid var(--border-2)", background: quality === q ? "var(--paper)" : "transparent", color: quality === q ? "var(--ink)" : "var(--paper-2)" }}>
               {q === "normal" ? "HD" : "LOW"}
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Prev / Next chapter */}
         <div style={{ display: "flex", gap: "4px" }}>
@@ -65,26 +67,36 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
       {/* Pages */}
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2px", padding: "8px 0" }}>
         {pages.map((p, i) => {
-          const src = quality === "normal" ? p.url : p.dataSaver;
+          const src = quality === "normal" ? p.url : p.dataSaver ?? p.url;
+          const key = `${src}:${attempts[i] ?? 0}`;
+          const failed = status[key] === 'error';
           return (
             <div key={i} style={{ position: "relative", width: "100%", minHeight: "200px", background: "var(--surface)" }}>
-              {!loaded[i] && (
+              {!status[key] && (
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <div className="animate-spin" style={{ width: "24px", height: "24px", border: "2px solid var(--border-2)", borderTopColor: "var(--red)", borderRadius: "50%" }} />
                 </div>
               )}
               <Image
+                key={key}
                 src={src}
                 alt={`Page ${i + 1}`}
-                width={800}
-                height={1200}
-                style={{ width: "100%", height: "auto", display: "block", opacity: loaded[i] ? 1 : 0, transition: "opacity 0.2s" }}
-                onLoad={() => onLoad(i)}
-                unoptimized
+                width={p.width ?? 800}
+                height={p.height ?? 1200}
+                style={{ width: "100%", height: "auto", display: failed ? 'none' : 'block', opacity: status[key] === 'loaded' ? 1 : 0, transition: "opacity 0.2s" }}
+                onLoad={() => setStatus(previous => ({ ...previous, [key]: 'loaded' }))}
+                onError={() => setStatus(previous => ({ ...previous, [key]: 'error' }))}
+                unoptimized={providerLabel !== 'Atsumaru'}
+                sizes="(max-width: 800px) 100vw, 800px"
                 loading={i < 3 ? "eager" : "lazy"}
                 priority={i < 2}
                 referrerPolicy="no-referrer"
               />
+              {failed && <div role="alert" style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                <p>Page {i + 1} could not load from {providerLabel}.</p>
+                <button className="editorial-button" type="button" onClick={() => setAttempts(previous => ({ ...previous, [i]: (previous[i] ?? 0) + 1 }))}>Retry page {i + 1}</button>{' '}
+                <Link href={chaptersHref}>All chapters</Link>
+              </div>}
             </div>
           );
         })}
@@ -95,16 +107,16 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
         {prevChapterId ? (
           <Link href={`/manga/${mangaId}/${prevChapterId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", border: "1px solid var(--border-2)", color: "var(--paper-2)", textDecoration: "none" }}>‹ PREV CHAPTER</Link>
         ) : null}
-        <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", border: "1px solid var(--border-2)", color: "var(--paper-2)", textDecoration: "none" }}>ALL CHAPTERS</Link>
+        <Link href={chaptersHref} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", border: "1px solid var(--border-2)", color: "var(--paper-2)", textDecoration: "none" }}>ALL CHAPTERS</Link>
         {nextChapterId ? (
           <Link href={`/manga/${mangaId}/${nextChapterId}`} style={{ fontFamily: "var(--font-display, Impact)", fontSize: "0.85rem", letterSpacing: "0.08em", textTransform: "uppercase", padding: "9px 24px", background: "var(--red)", border: "1px solid var(--red)", color: "var(--paper)", textDecoration: "none" }}>NEXT CHAPTER ›</Link>
         ) : (
-            <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", background: "var(--paper)", border: "1px solid var(--paper)", color: "var(--ink)", textDecoration: "none" }}>{inventoryComplete ? 'END OF AVAILABLE CHAPTERS' : 'CHECK CHAPTER LIST'}</Link>
+            <Link href={chaptersHref} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", background: "var(--paper)", border: "1px solid var(--paper)", color: "var(--ink)", textDecoration: "none" }}>{inventoryComplete ? 'END OF AVAILABLE CHAPTERS' : 'CHECK CHAPTER LIST'}</Link>
         )}
       </div>
 
       <p style={{ textAlign: "center", fontFamily: "var(--font-condensed, Arial)", fontSize: "0.55rem", letterSpacing: "0.08em", color: "var(--border-2)", paddingBottom: "2rem", textTransform: "uppercase" }}>
-        Images served by MangaDex{scanlationGroup && scanlationGroup !== 'Unknown' ? ` · Translation by ${scanlationGroup}` : ''}
+        Images served by {providerLabel}{scanlationGroup && scanlationGroup !== 'Unknown' ? ` · Translation by ${scanlationGroup}` : ''}
       </p>
     </div>
   );

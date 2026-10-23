@@ -5,6 +5,9 @@ import Image from 'next/image';
 import { type MDManga, type MDChapter, getMangaById, getMangaChapters, findMangaForCatalogEntry } from '@/lib/mangadex';
 import { getKitsuMangaById } from '@/lib/kitsu';
 import { getMangaByIdAL } from '@/lib/anilist';
+import { getAtsumaruDetail } from '@/lib/atsumaru';
+import { ProviderNotFoundError } from '@/lib/server/provider-errors';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 import {
   getMangaUpdatesPublication,
   type MangaUpdatesPublication,
@@ -14,7 +17,7 @@ export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; translation?: string }>;
 }
 
 const CHAPTERS_PER_PAGE = 96;
@@ -138,8 +141,8 @@ function PublicationContributors({ publication }: { publication: MangaUpdatesPub
 export default async function MangaDetailPage({ params, searchParams }: Props) {
   const { id: rawId } = await params;
   const id = decodeURIComponent(rawId);
-  const { page: pageStr } = await searchParams;
-  const page = Math.max(1, Number(pageStr) || 1);
+  const { page: pageStr, translation } = await searchParams;
+  const page = Math.min(9999, Math.max(1, Math.floor(Number(pageStr) || 1)));
 
   let manga: MDManga | null = null;
   let chapters: MDChapter[] = [];
@@ -148,9 +151,27 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
   let complete = true;
   let mangaDexMatch: MDManga | null = null;
   let sourceLabel: string;
+  let translations: Array<{ id: string; name: string; count: number }> = [];
+  let selectedTranslation: string | undefined;
 
-  // ── Kitsu ─────────────────────────────────────────────────────
-  if (id.startsWith('kitsu:')) {
+  // ── Atsumaru ─────────────────────────────────────────────────────
+  if (id.startsWith('atsumaru:')) {
+    let data;
+    try { data = await getAtsumaruDetail(id, translation); }
+    catch (error) {
+      if (error instanceof ProviderNotFoundError) return notFound();
+      return <ProviderUnavailable title="Atsumaru temporarily unavailable" backHref="/manga?source=atsumaru" backLabel="Browse manga" retryHref={`/manga/${encodeURIComponent(id)}`} />;
+    }
+    if (!data) return notFound();
+    manga = data.manga;
+    translations = data.translations;
+    selectedTranslation = data.translation;
+    total = data.chapters.length;
+    readableTotal = data.chapters.filter(chapter => chapter.availability === 'hosted').length;
+    complete = data.complete;
+    chapters = data.chapters.slice((page - 1) * CHAPTERS_PER_PAGE, page * CHAPTERS_PER_PAGE);
+    sourceLabel = 'ATSUMARU';
+  } else if (id.startsWith('kitsu:')) {
     const kitsuId = id.slice('kitsu:'.length);
     manga = await getKitsuMangaById(kitsuId);
     if (!manga) return notFound();
@@ -238,7 +259,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
       {/* Breadcrumb */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
         <Link
-          href={id.startsWith('anilist:') ? '/manga?source=anilist' : id.startsWith('kitsu:') ? '/manga?source=kitsu' : '/manga?source=mangadex'}
+          href={id.startsWith('atsumaru:') || id.startsWith('kitsu:') ? '/manga?source=atsumaru' : id.startsWith('anilist:') ? '/manga?source=anilist' : '/manga?source=mangadex'}
           style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.1em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase' }}
         >
           MANGA
@@ -354,6 +375,14 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
 
         {!complete && <p role="status" style={{ padding: '1rem', color: 'var(--muted)' }}>Chapter inventory is incomplete. Counts reflect only the entries returned; retry this page for the full list.</p>}
 
+        {translations.length > 0 && <form method="get" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <label htmlFor="translation">Translation</label>
+          <select id="translation" name="translation" defaultValue={selectedTranslation} style={{ maxWidth: '100%', minHeight: '44px', padding: '0.5rem', color: 'var(--paper)', background: 'var(--surface)', border: '1px solid var(--border-2)' }}>
+            {translations.map(group => <option key={group.id} value={group.id}>{group.name} · {group.count} releases</option>)}
+          </select>
+          <button className="editorial-button" type="submit">Apply translation</button>
+        </form>}
+
         {readableTotal === 0 && complete && (
           <div role="status" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid var(--border-2)', background: 'var(--surface)' }}>
             <p style={{ fontFamily: 'var(--font-display, Impact)', letterSpacing: '0.06em', color: 'var(--paper)', marginBottom: '0.35rem' }}>
@@ -418,7 +447,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <Link
                 key={p}
-                href={`/manga/${id}?page=${p}`}
+                href={`/manga/${id}?page=${p}${selectedTranslation ? `&translation=${encodeURIComponent(selectedTranslation)}` : ''}`}
                 style={{ padding: '5px 11px', fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.65rem', letterSpacing: '0.08em', textDecoration: 'none', border: p === page ? '1px solid var(--red)' : '1px solid var(--border-2)', color: p === page ? 'var(--paper)' : 'var(--paper-2)', background: p === page ? 'var(--red)' : 'transparent' }}
               >
                 {p}

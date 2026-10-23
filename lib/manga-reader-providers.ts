@@ -1,4 +1,5 @@
 import { getChapterPages, type MDChapter, type MDPage } from './mangadex';
+import { getAtsumaruPages } from './atsumaru';
 
 export type ExternalReaderMode = 'iframe' | 'notice';
 
@@ -67,7 +68,7 @@ export function getReadableChapterNavigation(chapters: MDChapter[], chapterId: s
   };
 }
 
-export type MangaPageProviderAuthorization = 'documented-public-api' | 'licensed';
+export type MangaPageProviderAuthorization = 'documented-public-api' | 'public-site-api' | 'licensed';
 
 export interface MangaPageProviderAdapter {
   id: string;
@@ -75,12 +76,12 @@ export interface MangaPageProviderAdapter {
   authorization: MangaPageProviderAuthorization;
   attribution: string;
   canHandle(chapter: MDChapter): boolean;
-  resolvePages(chapterId: string): Promise<MDPage[]>;
+  resolvePages(chapterId: string, context?: { mangaId: string; chapter: MDChapter }): Promise<MDPage[]>;
 }
 
 export function defineMangaPageProvider(adapter: MangaPageProviderAdapter): MangaPageProviderAdapter {
-  if (adapter.authorization !== 'documented-public-api' && adapter.authorization !== 'licensed') {
-    throw new Error('A manga page provider requires a documented API allowance or explicit license.');
+  if (!['documented-public-api', 'public-site-api', 'licensed'].includes(adapter.authorization)) {
+    throw new Error('A manga page provider requires a documented API allowance or explicit license, or an explicit public-site API classification.');
   }
   return Object.freeze(adapter);
 }
@@ -92,4 +93,13 @@ export const mangaDexPageProvider = defineMangaPageProvider({
   attribution: 'Images served by MangaDex',
   canHandle: chapter => chapter.provider === 'MangaDex' && chapter.availability === 'hosted',
   resolvePages: getChapterPages,
+});
+
+export const atsumaruPageProvider = defineMangaPageProvider({
+  id: 'atsumaru', label: 'Atsumaru', authorization: 'public-site-api', attribution: 'Images served by Atsumaru',
+  canHandle: chapter => chapter.provider === 'Atsumaru' && chapter.availability === 'hosted',
+  resolvePages: (chapterId, context) => {
+    if (!context || context.chapter.id !== chapterId || context.chapter.provider !== 'Atsumaru') throw new Error('Atsumaru chapter context is required');
+    return getAtsumaruPages(context.mangaId, context.chapter);
+  },
 });

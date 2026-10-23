@@ -1,16 +1,22 @@
 import Link from 'next/link';
 import { searchManga } from '@/lib/mangadex';
+import { searchAtsumaru } from '@/lib/atsumaru';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
 import MangaCard from '@/components/MangaCard';
 import MediaCardGrid from '@/components/MediaCardGrid';
 
 interface Props {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; source?: string }>;
 }
 
 export default async function MangaSearchPage({ searchParams }: Props) {
-  const { q } = await searchParams;
+  const { q, source: rawSource } = await searchParams;
+  const source = rawSource === 'atsumaru' || rawSource === 'kitsu' ? 'atsumaru' : 'mangadex';
   const query = q?.trim() ?? '';
-  const merged = query.length > 1 ? await searchManga(query, 18) : [];
+  if (query.length > 100) return <ProviderUnavailable title="Search query is too long" backHref="/manga" backLabel="Browse manga" />;
+  let merged;
+  try { merged = query.length > 1 ? await (source === 'atsumaru' ? searchAtsumaru(query) : searchManga(query, 18)) : []; }
+  catch { return <ProviderUnavailable title="Manga search temporarily unavailable" backHref={`/manga?source=${source}`} backLabel="Browse manga" retryHref={`/manga/search?source=${source}&q=${encodeURIComponent(query)}`} />; }
 
   return (
     <div className="page-gutter" style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '4rem' }}>
@@ -42,6 +48,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
       {/* ── Search Form ──────────────────────────────────────── */}
       <div style={{ padding: '1.5rem 0', borderBottom: '1px solid var(--border)', marginBottom: '2.5rem' }}>
         <form action="/manga/search" method="get" style={{ display: 'flex', gap: '0', maxWidth: '600px' }}>
+          <input type="hidden" name="source" value={source} />
           <input
             name="q"
             defaultValue={query}
@@ -77,6 +84,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
             SEARCH
           </button>
         </form>
+        <p style={{ marginTop: '0.75rem', color: 'var(--muted)' }}>Searching {source === 'atsumaru' ? 'Atsumaru' : 'MangaDex'} · <Link href={`/manga/search?source=${source === 'atsumaru' ? 'mangadex' : 'atsumaru'}&q=${encodeURIComponent(query)}`}>Search {source === 'atsumaru' ? 'MangaDex' : 'Atsumaru'} instead</Link></p>
       </div>
 
       {/* ── Results Header ───────────────────────────────────── */}

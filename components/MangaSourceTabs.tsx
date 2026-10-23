@@ -7,7 +7,7 @@ import { useState } from 'react';
 const SOURCES = [
   { id: 'anilist',  label: 'AniList',   color: '#02a9ff' },
   { id: 'mangadex', label: 'MangaDex',  color: '#FF6740' },
-  { id: 'kitsu',    label: 'Kitsu',     color: '#7B52AB' },
+  { id: 'atsumaru', label: 'Atsumaru', color: '#7B52AB' },
 ];
 
 export default function MangaSourceTabs() {

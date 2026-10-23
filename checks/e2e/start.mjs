@@ -36,6 +36,33 @@ const upstream = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1:3101');
   const send = (data, status = 200, type = 'application/json') => { res.writeHead(status, { 'Content-Type': type }); res.end(type === 'application/json' ? JSON.stringify(data) : data); };
   if (url.pathname === '/cover.svg') return send(art, 200, 'image/svg+xml');
+  if (url.pathname.startsWith('/atsu/')) {
+    const scanlators = [{ id: 'Alpha', name: 'Alpha Translation' }, { id: 'Beta', name: 'Beta Translation' }];
+    const series = id => ({ id, title, type: id === 'hua' ? 'Manhua' : id === 'manga' ? 'Manga' : 'Manwha', medium: 'Comic', isAdult: false,
+      status: 'Completed', synopsis: description, image: '/posters/fixture.webp', poster: { image: '/posters/fixture.webp' },
+      genres: [{ name: 'Fantasy' }], scanlators, totalChapterCount: id === 'Long' ? 100 : 3 });
+    const numbers = (url.searchParams.get('mangaId') ?? url.searchParams.get('id')) === 'Long' ? Array.from({ length: 101 }, (_, i) => i) : [0, 1, 1.5, 3];
+    const refs = numbers.flatMap((number, index) => scanlators.map(group => ({ id: `${group.id}-${String(number).replace('.', '_')}`, title: `Chapter ${number}: ${title}`,
+      number, index, scanlationMangaId: group.id, pageCount: 2, createdAt: 1792748800000 })));
+    if (url.pathname.includes('/home2/')) return send({ items: ['Story', 'manga', 'hua'].map(series) });
+    if (url.pathname.includes('/documents/search')) {
+      if (url.searchParams.get('q') === 'offline') return send({ error: 'Offline' }, 503);
+      return send({ hits: url.searchParams.get('q') === 'empty' ? [] : ['Story', 'manga', 'hua'].map(id => ({ document: series(id) })) });
+    }
+    if (url.pathname.endsWith('/page')) {
+      if (url.searchParams.get('id') === 'missing') return send({}, 404);
+      if (url.searchParams.get('id') === 'offline') return send({}, 503);
+      return send({ mangaPage: series(url.searchParams.get('id')) });
+    }
+    if (url.pathname.endsWith('/allChapters')) return send({ chapters: refs });
+    if (url.pathname.endsWith('/chapter')) {
+      const ref = refs.find(c => c.id === url.searchParams.get('chapterId'));
+      if (!ref) return send({}, 404);
+      return send({ readChapter: { id: ref.id, number: ref.number, scanlationMangaId: ref.scanlationMangaId,
+        pages: [0, 1].map(number => ({ number, image: `/static/pages/${ref.id}/${number}.webp`, width: 720, height: number ? 900 : 4000 })) } });
+    }
+    return send({}, 404);
+  }
   if (url.pathname === '/graphql') {
     let body = ''; for await (const chunk of req) body += chunk;
     const { query, variables = {} } = JSON.parse(body);
@@ -95,8 +122,9 @@ upstream.listen(3101, '127.0.0.1', () => {
       MANGAUPDATES_API_BASE: 'http://127.0.0.1:3101/mu', GOOGLE_BOOKS_API_BASE: 'http://127.0.0.1:3101/gb',
       GOOGLE_BOOKS_API_KEY: '', NOVELFIRE_API_BASE: 'https://novelfire.net', NOVELFIRE_API_REFERER: 'https://novelfire.net/',
       NOVEL_PROVIDER: 'novelbuddy', NOVELBUDDY_API_BASE: 'http://127.0.0.1:3101/nb',
+      ATSUMARU_BASE_URL: 'http://127.0.0.1:3101/atsu', ATSUMARU_IMAGE_BASE_URL: 'https://cdn.atsu.moe',
       NEXT_TEST_DIST_DIR: '.next/responsive',
-      UPSTASH_REDIS_REST_URL: '', UPSTASH_REDIS_REST_TOKEN: '', CSP_ENFORCE: 'false',
+      UPSTASH_REDIS_REST_URL: '', UPSTASH_REDIS_REST_TOKEN: '', CSP_ENFORCE: 'true',
     },
   });
   const stop = () => { child.kill('SIGTERM'); upstream.close(); };

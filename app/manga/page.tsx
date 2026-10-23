@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { getPopularManga, getLatestManga, getTrendingManga } from '@/lib/mangadex';
-import { getKitsuPopular, getKitsuLatest, getKitsuTopRated } from '@/lib/kitsu';
+import { discoverAtsumaru } from '@/lib/atsumaru';
 import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/anilist';
 import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
@@ -23,11 +24,11 @@ type SourceData = {
 
 async function fetchBySource(source: string): Promise<SourceData> {
   switch (source) {
-    case 'kitsu': {
+    case 'atsumaru': {
       const [popular, latest, trending] = await Promise.all([
-        getKitsuPopular(20),
-        getKitsuLatest(20),
-        getKitsuTopRated(20),
+        discoverAtsumaru('popular'),
+        discoverAtsumaru('recentlyUpdated'),
+        discoverAtsumaru('topRated'),
       ]);
       return { popular, latest, trending, trendingLabel: 'TOP RATED' };
     }
@@ -129,10 +130,11 @@ function Grid({ items }: { items: MDManga[] }) {
   );
 }
 
-const VALID_SOURCES = ['mangadex', 'kitsu', 'anilist'];
+const VALID_SOURCES = ['mangadex', 'atsumaru', 'anilist'];
 
 export default async function MangaPage({ searchParams }: Props) {
   const { source: rawSource } = await searchParams;
+  if (rawSource === 'kitsu') redirect('/manga?source=atsumaru');
   const source = VALID_SOURCES.includes(rawSource ?? '')
     ? (rawSource as string)
     : 'anilist';

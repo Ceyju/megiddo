@@ -55,13 +55,17 @@ export interface MDChapter {
   pageCount: number;
   scanlationGroup: string;
   availability: ChapterAvailability;
-  provider: 'MangaDex' | 'Kitsu';
+  provider: 'MangaDex' | 'Kitsu' | 'Atsumaru';
+  scanlationId?: string;
+  sourceIndex?: number;
   externalUrl: string | null;
 }
 
 export interface MDPage {
   url: string;   // normal quality
-  dataSaver: string; // compressed
+  dataSaver?: string; // compressed, when supplied by the source
+  width?: number;
+  height?: number;
 }
 
 // ─── Internal helpers ───────────────────────────────────────────────────────

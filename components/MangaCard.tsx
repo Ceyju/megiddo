@@ -1,12 +1,12 @@
 import UniversalMediaCard from "@/components/UniversalMediaCard";
 import type { MDManga } from "@/lib/mangadex";
 
-const KNOWN_HOSTS = ["uploads.mangadex.org", "media.kitsu.app", "s4.anilist.co"];
+const KNOWN_HOSTS = ["uploads.mangadex.org", "media.kitsu.app", "s4.anilist.co", "cdn.atsu.moe"];
 
 function isKnownHost(url: string | null): boolean {
   if (!url) return false;
   try {
-    return KNOWN_HOSTS.some((host) => new URL(url).hostname.endsWith(host));
+    return KNOWN_HOSTS.includes(new URL(url).hostname);
   } catch {
     return false;
   }
