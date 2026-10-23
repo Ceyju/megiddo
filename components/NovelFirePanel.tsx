@@ -127,7 +127,7 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
 
         {/* Chapter content */}
         {!chapterLoading && chapterContent && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 2.5rem 3rem', background: 'var(--ink)' }}>
+          <div className="page-gutter" style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingBlock: '2rem 3rem', background: 'var(--ink)' }}>
             {/* Nav top */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem', justifyContent: 'center' }}>
               <button
@@ -223,14 +223,14 @@ export default function NovelFirePanel({ initialSlug, novelTitle }: Props) {
 
         <form
           onSubmit={e => { e.preventDefault(); loadChapters(slugInput); }}
-          style={{ display: 'flex', gap: '4px', marginLeft: 'auto', alignItems: 'center' }}
+          style={{ display: 'flex', flex: '1 1 220px', minWidth: 0, gap: '4px', marginLeft: 'auto', alignItems: 'center' }}
         >
           <input
             value={slugInput}
             onChange={e => setSlugInput(e.target.value)}
             placeholder="novel-slug"
             style={{
-              width: '180px',
+              width: '180px', maxWidth: '100%', minWidth: 0, flex: 1,
               background: 'var(--ink)',
               border: '1px solid var(--border)',
               color: 'var(--paper)',

@@ -15,6 +15,9 @@ interface Props {
 }
 
 const controlStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  minHeight: '44px',
   fontFamily: 'var(--font-condensed, Arial)',
   fontSize: '0.62rem',
   letterSpacing: '0.1em',
@@ -84,7 +87,7 @@ export default function ExternalChapterReader({
             EXPERIMENTAL
           </span>
         )}
-        <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginLeft: 'auto' }}>
           {previousHref ? <Link href={previousHref} style={controlStyle}>‹ PREV</Link> : <span aria-disabled="true" style={{ ...controlStyle, opacity: 0.35 }}>‹ PREV</span>}
           {nextHref ? <Link href={nextHref} style={{ ...controlStyle, background: 'var(--red)', borderColor: 'var(--red)', color: 'var(--paper)' }}>NEXT ›</Link> : <span aria-disabled="true" style={{ ...controlStyle, opacity: 0.35 }}>NEXT ›</span>}
           <a href={officialUrl} target="_blank" rel="noopener noreferrer" style={controlStyle}>OPEN OFFICIAL READER ↗</a>

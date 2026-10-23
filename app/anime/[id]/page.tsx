@@ -59,7 +59,7 @@ export default async function AnimePage({ params }: Props) {
       </div>
 
       {/* Main */}
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem 5rem' }}>
+      <div className="page-gutter" style={{ maxWidth: '1280px', margin: '0 auto', paddingBottom: '5rem' }}>
 
         {/* Cover + title block — overlaps banner */}
         <div style={{ display: 'flex', gap: '1.75rem', marginTop: '-5rem', position: 'relative', zIndex: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -78,7 +78,7 @@ export default async function AnimePage({ params }: Props) {
           </div>
 
           {/* Title block */}
-          <div style={{ flex: 1, minWidth: '220px', paddingBottom: '0.5rem' }}>
+          <div style={{ flex: '1 1 220px', minWidth: 0, paddingBottom: '0.5rem' }}>
             {anime.title.native && (
               <div style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.7rem', letterSpacing: '0.1em', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
                 {anime.title.native}
@@ -137,7 +137,7 @@ export default async function AnimePage({ params }: Props) {
         </div>
 
         {/* Watch button */}
-        <div style={{ margin: '2rem 0', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ margin: '2rem 0', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
           {firstEpisode ? (
             <Link href={'/watch/' + anilistId + '/' + encodeURIComponent(firstEpisode.id)} style={{
               fontFamily: 'var(--font-display, Impact)',
@@ -175,11 +175,11 @@ export default async function AnimePage({ params }: Props) {
         </div>
 
         {/* Body: Synopsis + Episodes */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '3rem' }} className='lg:grid-cols-3-auto'>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: '2.5rem' }} className='grid lg:grid-cols-[1fr_280px] lg:gap-10'>
+        <div>
+          <div className="anime-detail-body grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 
             {/* Left */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', minWidth: 0 }}>
               {anime.description && (
                 <div>
                   <div style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '1.2rem', letterSpacing: '0.08em', color: 'var(--paper)', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>

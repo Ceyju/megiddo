@@ -233,7 +233,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
     : null;
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
+    <div className="page-gutter" style={{ maxWidth: '1400px', margin: '0 auto', paddingBlock: '1.5rem 4rem' }}>
 
       {/* Breadcrumb */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
@@ -251,7 +251,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
 
       {/* Detail */}
       <div
-        className="grid gap-8 md:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_300px]"
+        className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_300px]"
         style={{ alignItems: 'flex-start', marginBottom: '3rem' }}
       >
 
@@ -378,17 +378,17 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
           {chapters.map(ch => {
             const content = (
               <>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <div className="manga-chapter-row__info">
                 <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'var(--paper)', textTransform: 'uppercase', minWidth: '70px' }}>
                   CH. {ch.chapter ?? '?'}
                 </span>
                 {ch.title && (
-                  <span style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.75rem', color: 'var(--paper-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '360px' }}>
+                  <span className="manga-chapter-row__title" style={{ fontFamily: 'var(--font-body, sans-serif)', fontSize: '0.75rem', color: 'var(--paper-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '360px' }}>
                     {ch.title}
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0 }}>
+              <div className="manga-chapter-row__meta">
                 <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.55rem', color: 'var(--muted)', letterSpacing: '0.06em' }}>
                   {ch.scanlationGroup}
                 </span>
@@ -401,15 +401,15 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
               </div>
               </>
             );
-            const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface)', textDecoration: 'none', borderLeft: '2px solid transparent', transition: 'all 0.12s' } as const;
+            const rowStyle = { padding: '8px 12px', background: 'var(--surface)', textDecoration: 'none', borderLeft: '2px solid transparent', transition: 'all 0.12s' } as const;
 
             if (ch.availability === 'hosted') {
-              return <HoverLink key={ch.id} href={`/manga/${id}/${ch.id}`} style={rowStyle}>{content}</HoverLink>;
+              return <HoverLink className="manga-chapter-row" key={ch.id} href={`/manga/${id}/${ch.id}`} style={rowStyle}>{content}</HoverLink>;
             }
             if (ch.availability === 'external' && ch.externalUrl) {
-              return <HoverLink key={ch.id} href={`/manga/${id}/${ch.id}`} style={rowStyle}>{content}</HoverLink>;
+              return <HoverLink className="manga-chapter-row" key={ch.id} href={`/manga/${id}/${ch.id}`} style={rowStyle}>{content}</HoverLink>;
             }
-            return <div key={ch.id} aria-disabled="true" style={{ ...rowStyle, opacity: 0.62 }}>{content}</div>;
+            return <div className="manga-chapter-row" key={ch.id} aria-disabled="true" style={{ ...rowStyle, opacity: 0.62 }}>{content}</div>;
           })}
         </div>
 

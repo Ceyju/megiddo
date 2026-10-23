@@ -165,19 +165,16 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
     <div style={{ background: theme.bg, minHeight: '100vh', transition: 'background 0.2s' }}>
 
       {/* Top bar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '0.5rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+      <div className="reader-toolbar novel-reader-toolbar" style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}` }}>
           <a href={`/webnovels/${novelSlug}`} style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: theme.muted, textDecoration: 'none', flexShrink: 0 }}>
             ← CHAPTERS
           </a>
-          <span style={{ color: theme.border }}>·</span>
-          <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span className="novel-reader-toolbar__title" style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', color: theme.text }}>
             {chapter.title}
           </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div className="novel-reader-toolbar__actions">
           <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.muted }}>~{minutesLeft}m left</span>
-          <button onClick={() => setShowSettings(s => !s)} style={btnStyle(showSettings)}>Aa</button>
+          <button aria-label="Reader settings" aria-expanded={showSettings} onClick={() => setShowSettings(s => !s)} style={btnStyle(showSettings)}>Aa</button>
         </div>
       </div>
 
@@ -188,7 +185,7 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
 
       {/* Settings panel */}
       {showSettings && (
-        <div style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="page-gutter" style={{ background: theme.bg, borderBottom: `1px solid ${theme.border}`, paddingBlock: '0.75rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '1rem', textTransform: 'uppercase', color: theme.muted }}>SIZE</span>
             <button onClick={() => updateSettings({ fontSize: Math.max(14, settings.fontSize - 1) })} style={btnStyle()}>−</button>
@@ -224,7 +221,7 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
       )}
 
       {/* Content */}
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '3rem 1.5rem 6rem' }}>
+      <div className="page-gutter" style={{ maxWidth: '960px', margin: '0 auto', paddingBlock: '3rem 6rem' }}>
         <p style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.75rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.muted, marginBottom: '0.5rem', fontWeight: 400 }}>
           {chapter.chapterNumber ? `Chapter ${chapter.chapterNumber}` : 'Chapter'}
         </p>
@@ -246,7 +243,7 @@ export default function NovelFireReader({ novelSlug, chapterSlug, chapter, onPro
         ))}
 
         {/* Nav */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '4rem', paddingTop: '2rem', borderTop: `1px solid ${theme.border}` }}>
+        <div className="reader-navigation" style={{ justifyContent: 'space-between', marginTop: '4rem', paddingTop: '2rem', borderTop: `1px solid ${theme.border}` }}>
           {chapter.prevChapterSlug ? (
             <a href={`/webnovels/${novelSlug}/${chapter.prevChapterSlug}`}
               style={{ padding: '10px 20px', fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', border: `1px solid ${theme.border}`, color: theme.muted, textDecoration: 'none' }}>

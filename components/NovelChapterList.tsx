@@ -122,8 +122,9 @@ export default function NovelChapterList({
     <div id="chapter-list-top">
       {/* ── Toolbar row ── */}
       <div
+        className="page-gutter"
         style={{
-          padding: '0.8rem 1.5rem',
+          paddingBlock: '0.8rem',
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
@@ -228,7 +229,7 @@ export default function NovelChapterList({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
               borderLeft: '1px solid var(--border)',
             }}
           >

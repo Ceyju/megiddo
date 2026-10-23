@@ -179,7 +179,8 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
               sandbox="allow-scripts allow-same-origin allow-presentation"
               onLoad={handleProviderLoad}
             />
-            {isProviderTimedOut && (
+          </div>
+          {isProviderTimedOut && (
               <div className="provider-timeout" role="alert">
                 <strong>Provider is taking too long</strong>
                 <span>{provider.label} did not finish loading. Retry or select the other source.</span>
@@ -190,13 +191,12 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
                   )}
                 </div>
               </div>
-            )}
-          </div>
-          <div className="player-frame-actions">
+          )}
+          {/* <div className="player-frame-actions">
             <span role="status" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Not playing? Retry or switch sources.</span>
             <button type="button" className="editorial-button" onClick={retryProvider}>Retry source</button>
             {alternateIndex >= 0 && <button type="button" className="editorial-button" onClick={() => selectProvider(alternateIndex)}>Switch to {providers[alternateIndex].label}</button>}
-            {/* <a className="player-external-link" href={provider.src} target="_blank" rel="noopener noreferrer">Open provider externally</a> */}
+            <a className="player-external-link" href={provider.src} target="_blank" rel="noopener noreferrer">Open provider externally</a>
             <button
               type="button"
               className="player-fullscreen-button"
@@ -207,7 +207,7 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
               {isFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
               <span>{isFullscreen ? "" : ""}</span>
             </button>
-          </div>
+          </div> */}
         </>
       )}
 

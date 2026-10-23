@@ -20,7 +20,7 @@ export interface EditorialSlide {
 }
 
 export default function EditorialHeroCarousel({ items, label }: { items: EditorialSlide[]; label: string }) {
-  const { current, goTo, rootRef, progressRef, pause, resume, onKeyDown } = useEditorialCarousel(items.length);
+  const { current, goTo, next, previous, rootRef, progressRef, pause, resume, onKeyDown } = useEditorialCarousel(items.length);
   if (!items.length) return null;
   const item = items[current];
   const background = item.background || item.image;
@@ -67,6 +67,11 @@ export default function EditorialHeroCarousel({ items, label }: { items: Editori
             {index === current && <span ref={progressRef} className="carousel-progress" />}
           </button>
         ))}
+      </div>
+      <div className="editorial-carousel__mobile-controls" aria-label="Featured slides">
+        <button type="button" onClick={previous} aria-label="Previous slide" disabled={items.length < 2}>‹</button>
+        <span>{current + 1} / {items.length}</span>
+        <button type="button" onClick={next} aria-label="Next slide" disabled={items.length < 2}>›</button>
       </div>
     </section>
   );

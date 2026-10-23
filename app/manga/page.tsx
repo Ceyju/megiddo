@@ -172,14 +172,14 @@ export default async function MangaPage({ searchParams }: Props) {
       </div>
 
       {/* ── Source Tabs ─────────────────────────────────────── */}
-      <div style={{ padding: '0 1.5rem', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
+      <div className="page-gutter" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
         <Suspense fallback={<div style={{ height: '34px' }} />}>
           <MangaSourceTabs />
         </Suspense>
       </div>
 
       {/* ── Sections ─────────────────────────────────────────── */}
-      <div style={{ padding: '0 1.5rem' }}>
+      <div className="page-gutter">
       <Section label="MOST POPULAR" accent="var(--paper)" number="01">
         <Grid items={popular} />
       </Section>

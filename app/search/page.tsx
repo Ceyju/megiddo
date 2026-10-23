@@ -76,7 +76,7 @@ function SearchContent() {
   }
 
   return (
-    <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1.5rem 4rem' }}>
+    <main className="page-gutter" style={{ maxWidth: '1280px', margin: '0 auto', paddingBlock: '2rem 4rem' }}>
 
       {/* Page header */}
       <div style={{ marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>

@@ -2,14 +2,28 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [panel, setPanel] = useState<'search' | 'menu' | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const searchTrigger = useRef<HTMLButtonElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuOpen = panel === 'menu';
+  const searchOpen = panel === 'search';
+
+  useEffect(() => {
+    if (searchOpen) searchInput.current?.focus();
+  }, [searchOpen]);
+
+  function closePanel(returnFocus = false) {
+    if (returnFocus) (searchOpen ? searchTrigger : menuTrigger).current?.focus();
+    setPanel(null);
+  }
 
   const pathname = usePathname();
   const isManga = pathname.startsWith("/manga");
@@ -25,16 +39,23 @@ export default function Navbar() {
     else router.push(`/search?q=${encodeURIComponent(q)}`);
     setQuery("");
     setFocused(false);
+    closePanel();
   }
 
   return (
     <header
       style={{ borderBottom: "1px solid var(--border)" }}
-      className="sticky top-0 z-50"
+      className="site-header sticky top-0 z-50"
+      onKeyDown={event => {
+        if (event.key === 'Escape' && panel) {
+          event.preventDefault();
+          closePanel(true);
+        }
+      }}
     >
       <div
         style={{ background: "rgba(11, 10, 8, 0.92)", backdropFilter: "blur(12px)" }}
-        className="w-full px-6 h-14 flex items-center gap-6"
+        className="site-header__bar page-gutter"
       >
         {/* Logo */}
         <Link
@@ -67,7 +88,7 @@ export default function Navbar() {
         </Link>
 
         {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-7 ml-2">
+        <nav className="hidden md:flex shrink-0 items-center gap-5 lg:gap-7">
           {[ 
             { href: "/", label: "ANIME" },
             { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANHWA" },
@@ -85,10 +106,10 @@ export default function Navbar() {
         </nav>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-sm ml-auto">
+        <form id="site-search-panel" onSubmit={handleSearch} className={`site-search-form${searchOpen ? ' is-open' : ''}`}>
           <label className="sr-only" htmlFor="site-search">{searchPlaceholder}</label>
           <div
-            className="flex items-center gap-2 px-3 py-1.5"
+            className="site-search-field"
             style={{
               borderBottom: focused
                 ? "1px solid var(--red)"
@@ -102,6 +123,7 @@ export default function Navbar() {
             />
             <input
               id="site-search"
+              ref={searchInput}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -114,8 +136,9 @@ export default function Navbar() {
                 outline: "none",
                 color: "var(--paper)",
                 fontFamily: "var(--font-body, sans-serif)",
-                fontSize: "0.82rem",
+                fontSize: "1rem",
                 width: "100%",
+                minWidth: 0,
               }}
             />
             {query && (
@@ -123,18 +146,27 @@ export default function Navbar() {
                 type="button"
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
+                className="nav-icon-button"
                 style={{ color: "var(--muted)", background: "none", border: "none", cursor: "pointer" }}
               >
                 <X className="w-3 h-3" />
               </button>
             )}
+            <button type="submit" aria-label="Submit search" className="nav-icon-button"><Search size={18} /></button>
+            <button type="button" aria-label="Close search" className="nav-icon-button nav-mobile-button" onClick={() => closePanel(true)}><X size={18} /></button>
           </div>
         </form>
+
+        <button ref={searchTrigger} type="button" className="nav-icon-button nav-mobile-button ml-auto" aria-label="Toggle search" aria-expanded={searchOpen} aria-controls="site-search-panel" onClick={() => setPanel(searchOpen ? null : 'search')}>
+          <Search size={20} />
+        </button>
 
         {/* Mobile menu */}
         <button
           className="mobile-menu-button md:hidden"
-          onClick={() => setMenuOpen((v) => !v)}
+          ref={menuTrigger}
+          type="button"
+          onClick={() => setPanel(menuOpen ? null : 'menu')}
           style={{ color: "var(--paper-2)", background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem" }}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
@@ -147,7 +179,7 @@ export default function Navbar() {
       {menuOpen && (
         <div
           id="mobile-navigation"
-          className="md:hidden px-6 pb-5 pt-3 flex flex-col gap-4"
+          className="site-header__panel md:hidden page-gutter pb-5 pt-3 flex flex-col gap-4"
           style={{ background: "var(--ink-2)", borderBottom: "1px solid var(--border)" }}
         >
           {[
@@ -158,8 +190,9 @@ export default function Navbar() {
             <Link
               key={href}
               href={href}
-              onClick={() => setMenuOpen(false)}
-              aria-current={pathname.startsWith(href.split("?")[0]) ? "page" : undefined}
+              onClick={() => closePanel()}
+              aria-current={(href === '/' ? !isManga && !isNovels : pathname.startsWith(href.split('?')[0])) ? 'page' : undefined}
+              className="min-h-11 flex items-center"
               style={{
                 fontFamily: "var(--font-display, Impact)",
                 fontSize: "1.25rem",

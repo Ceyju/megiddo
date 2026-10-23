@@ -50,7 +50,7 @@ export default async function PreviewPage({ params }: Props) {
     <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '0 0 5rem' }}>
 
       {/* ── Breadcrumb / back ── */}
-      <nav style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <nav className="page-gutter" style={{ paddingBlock: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
         <Link
           href="/webnovels"
           style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', textDecoration: 'none' }}
@@ -64,13 +64,13 @@ export default async function PreviewPage({ params }: Props) {
       </nav>
 
       {/* ── Layout: sidebar + viewer ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 220px) 1fr', gap: 0 }}>
+      <div className="novel-preview-layout grid grid-cols-[minmax(0,1fr)] md:grid-cols-[220px_minmax(0,1fr)]">
 
         {/* ── Sidebar ── */}
-        <aside style={{ borderRight: '1px solid var(--border)', padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <aside className="novel-preview-sidebar page-gutter min-w-0" style={{ paddingBlock: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Cover */}
           {coverUrl ? (
-            <div style={{ width: '100%', aspectRatio: '2/3', position: 'relative', border: '1px solid var(--border)' }}>
+            <div style={{ width: '100%', maxWidth: '180px', aspectRatio: '2/3', position: 'relative', border: '1px solid var(--border)' }}>
               <Image
                 src={coverUrl}
                 alt={vol.title}
@@ -132,26 +132,11 @@ export default async function PreviewPage({ params }: Props) {
         </aside>
 
         {/* ── NovelFire reader panel ── */}
-        <div style={{ borderTop: '2px solid var(--red)', overflow: 'hidden' }}>
+        <div className="min-w-0" style={{ borderTop: '2px solid var(--red)' }}>
           <NovelFirePanel initialSlug={nfSlug} novelTitle={vol.title} />
         </div>
       </div>
 
-      {/* Responsive: stack on mobile */}
-      <style>{`
-        @media (max-width: 680px) {
-          div[style*="gridTemplateColumns"] {
-            grid-template-columns: 1fr !important;
-          }
-          aside[style*="borderRight"] {
-            border-right: none !important;
-            border-bottom: 1px solid var(--border);
-            flex-direction: row !important;
-            flex-wrap: wrap;
-            align-items: flex-start;
-          }
-        }
-      `}</style>
     </div>
   );
 }

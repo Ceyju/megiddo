@@ -13,7 +13,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
   const merged = query.length > 1 ? await searchManga(query, 18) : [];
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1.5rem 4rem' }}>
+    <div className="page-gutter" style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '4rem' }}>
 
       {/* ── Header ──────────────────────────────────────────── */}
       <header style={{ padding: '2.5rem 0 1.75rem', borderBottom: '1px solid var(--border)', marginBottom: '0' }}>
@@ -49,6 +49,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
             autoFocus
             style={{
               flex: 1,
+              minWidth: 0,
               background: 'var(--surface)',
               border: '1px solid var(--border-2)',
               borderRight: 'none',

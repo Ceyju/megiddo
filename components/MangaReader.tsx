@@ -26,7 +26,7 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
     <div style={{ background: "var(--ink)", minHeight: "100vh" }}>
 
       {/* Controls bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(11,10,8,0.95)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "6px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+      <div className="reader-toolbar" style={{ background: "rgba(11,10,8,0.95)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "6px 16px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <Link href={`/manga/${mangaId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.6rem", letterSpacing: "0.1em", color: "var(--muted)", textDecoration: "none", textTransform: "uppercase" }}>
           ‹ BACK
         </Link>
@@ -91,7 +91,7 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
       </div>
 
       {/* Bottom nav */}
-      <div style={{ display: "flex", justifyContent: "center", gap: "8px", padding: "2rem 1rem" }}>
+      <div className="reader-navigation" style={{ padding: "2rem 1rem" }}>
         {prevChapterId ? (
           <Link href={`/manga/${mangaId}/${prevChapterId}`} style={{ fontFamily: "var(--font-condensed, Arial)", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 20px", border: "1px solid var(--border-2)", color: "var(--paper-2)", textDecoration: "none" }}>‹ PREV CHAPTER</Link>
         ) : null}

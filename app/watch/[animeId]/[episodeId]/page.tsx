@@ -47,10 +47,10 @@ export default async function WatchPage({ params }: Props) {
   const streamingLinks: StreamingLink[] = [];
 
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem' }}>
+    <div className="page-gutter" style={{ maxWidth: '1600px', margin: '0 auto', paddingBlock: '1.5rem 4rem' }}>
 
       {/* Breadcrumb */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
+      <nav style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
         <Link href='/' style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.1em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase' }}>HOME</Link>
         <span style={{ color: 'var(--red)', fontSize: '0.6rem' }}>›</span>
         <Link href={'/anime/' + anilistId} style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.1em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -63,7 +63,7 @@ export default async function WatchPage({ params }: Props) {
       </nav>
 
       {/* Main layout */}
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }} className='xl:flex-nowrap'>
+      <div className="watch-layout grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
 
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -169,7 +169,7 @@ export default async function WatchPage({ params }: Props) {
         </div>
 
         {/* Episode sidebar */}
-        <div style={{ width: '288px', flexShrink: 0 }} className='w-full xl:w-72'>
+        <div className="episode-sidebar min-w-0 w-full">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
             <span style={{ fontFamily: 'var(--font-display, Impact)', fontSize: '1.2rem', letterSpacing: '0.08em', color: 'var(--paper)' }}>EPISODES</span>
             {episodes.length > 0 && (

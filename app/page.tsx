@@ -55,7 +55,7 @@ export default async function HomePage() {
       </div>
 
       {/* Content sections */}
-      <div className="w-full mx-auto px-6 py-12 flex flex-col gap-14">
+      <div className="page-gutter w-full mx-auto py-12 flex flex-col gap-14">
         <AnimeGrid title="TRENDING NOW" anime={trending.media.slice(1)} />
         <AnimeGrid
           title={`${season} ${year}`}

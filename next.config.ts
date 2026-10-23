@@ -29,6 +29,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_TEST_DIST_DIR ?? '.next',
   poweredByHeader: false,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {

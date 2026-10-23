@@ -43,7 +43,7 @@ export default async function NovelChaptersPage({ params }: Props) {
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 0 5rem' }}>
 
       {/* ── Breadcrumb ───────────────────────────────────────── */}
-      <nav style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <nav className="page-gutter" style={{ paddingBlock: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
         {[
           { label: 'Novel', href: '/webnovels' },
           { label: novel.title, href: null },
@@ -70,7 +70,7 @@ export default async function NovelChaptersPage({ params }: Props) {
       </nav>
 
       {/* ── Novel header ─────────────────────────────────────── */}
-      <header style={{ padding: '1.75rem 1.5rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+      <header className="page-gutter" style={{ paddingBlock: '1.75rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
         {/* Cover */}
         {novel.coverUrl && (
           <div style={{ flexShrink: 0, width: '64px', height: '88px', position: 'relative', border: '1px solid var(--border)' }}>
@@ -85,7 +85,7 @@ export default async function NovelChaptersPage({ params }: Props) {
           </div>
         )}
         {/* Meta */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(1.4rem, 4vw, 2.2rem)', letterSpacing: '0.02em', color: 'var(--red)', margin: '0 0 4px' }}>
             {novel.title}
           </h1>
@@ -105,7 +105,7 @@ export default async function NovelChaptersPage({ params }: Props) {
       </header>
 
       {/* ── Chapter section title ─────────────────────────────── */}
-      <div style={{ padding: '1.5rem 1.5rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
+      <div className="page-gutter" style={{ paddingBlock: '1.5rem 0.75rem', borderBottom: '1px solid var(--border)' }}>
         <h2 style={{ fontFamily: 'var(--font-display, Impact)', fontSize: 'clamp(1.1rem, 3vw, 1.6rem)', letterSpacing: '0.04em', color: 'var(--paper)', margin: '0 0 8px' }}>
           {novel.title} 
         </h2>

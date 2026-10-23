@@ -201,7 +201,7 @@ export default async function WebNovelsPage({ searchParams }: { searchParams: Pr
       genres: [], latestChapter: null, views: null, rating: null,
     }));
     return (
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div className="page-gutter" style={{ maxWidth: '1400px', margin: '0 auto', paddingBlock: '2rem' }}>
         <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Search results for “{query}”</h1>
         <Link href="/webnovels">Browse all novels</Link>
         {novels.length ? <NovelGrid novels={novels} /> : <p role="status" style={{ padding: '2rem 0' }}>No novels found. Try a different title.</p>}
@@ -239,7 +239,7 @@ export default async function WebNovelsPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
-      <div style={{ padding: '0 1.5rem' }}>
+      <div className="page-gutter">
 
         {/* ── 01 · Recommendations ─────────────────────────────── */}
         <Section label="Recommendations" accent="var(--paper)" number="01">
