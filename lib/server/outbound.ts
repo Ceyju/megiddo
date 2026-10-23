@@ -1,10 +1,22 @@
+import { checkProviderRateLimit } from './rate-limit';
+
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export class UpstreamError extends Error {
-  constructor(message: string, public readonly status = 502, public readonly upstreamStatus?: number) {
+  constructor(message: string, public readonly status = 502, public readonly upstreamStatus?: number, public readonly retryAfter?: number) {
     super(message);
     this.name = "UpstreamError";
   }
+}
+
+export async function providerFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+  const url = new URL(input instanceof Request ? input.url : input);
+  const rate = await checkProviderRateLimit(url.origin);
+  if (!rate.allowed) {
+    throw new UpstreamError(rate.statusCode === 429 ? 'Provider request budget exhausted' : 'Provider rate limiting is unavailable', 503, undefined,
+      Math.max(1, Math.ceil((rate.reset - Date.now()) / 1_000)));
+  }
+  return fetch(input, init);
 }
 
 function checkedUrl(input: string, allowedOrigins: readonly string[]) {
@@ -48,7 +60,7 @@ interface OutboundOptions extends RequestInit {
 export async function outboundFetch<T = unknown>(input: string, options: OutboundOptions): Promise<T | string> {
   const { allowedOrigins, timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes, expectedType, ...init } = options;
   const url = checkedUrl(input, allowedOrigins);
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(Math.min(12_000, Math.max(8_000, timeoutMs))) });
+  const response = await providerFetch(url, { ...init, signal: AbortSignal.timeout(Math.min(12_000, Math.max(8_000, timeoutMs))) });
   if (!response.ok) throw new UpstreamError(`Upstream returned ${response.status}`, 502, response.status);
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   const typeAllowed = expectedType === "json"

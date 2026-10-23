@@ -1,4 +1,4 @@
-import { UpstreamError } from './server/outbound';
+import { providerFetch, UpstreamError } from './server/outbound';
 import { ProviderNotFoundError } from './server/provider-errors';
 
 const BASE = process.env.MANGADEX_API_BASE ?? 'https://api.mangadex.org';
@@ -10,8 +10,11 @@ const HEADERS: Record<string, string> = {
 
 async function mdFetch(url: string, opts: RequestInit = {}): Promise<Response> {
   try {
-    return await fetch(url, { ...opts, signal: AbortSignal.timeout(10_000), headers: { ...HEADERS, ...(opts.headers as object ?? {}) } });
-  } catch { throw new UpstreamError('MangaDex is temporarily unavailable'); }
+    return await providerFetch(url, { ...opts, signal: AbortSignal.timeout(10_000), headers: { ...HEADERS, ...(opts.headers as object ?? {}) } });
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    throw new UpstreamError('MangaDex is temporarily unavailable');
+  }
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────

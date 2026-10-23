@@ -36,7 +36,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next/responsive/types/**/*.ts",
-    ".next/responsive/dev/types/**/*.ts"
+    ".next/responsive/dev/types/**/*.ts",
+    ".next/rate-limit-build/types/**/*.ts",
+    ".next/rate-limit-build/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

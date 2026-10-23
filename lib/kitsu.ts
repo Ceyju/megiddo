@@ -1,3 +1,4 @@
+import { providerFetch } from './server/outbound';
 import type { MDManga } from './mangadex';
 
 const BASE = 'https://kitsu.io/api/edge';
@@ -231,7 +232,7 @@ async function kitsuFetch(
   try {
     const url =
       `${BASE}/manga?sort=${sort}&page[limit]=${safeLimit}&${LIST_FIELDS}&include=categories${extraFilters}`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       next: { revalidate: 3600 },
     });
@@ -279,7 +280,7 @@ export async function getKitsuTrending(limit = 20): Promise<MDManga[]> {
   const safeLimit = Math.min(limit, MAX_LIMIT);
   try {
     const url = `${BASE}/trending/manga?page[limit]=${safeLimit}&include=categories&${LIST_FIELDS}`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       next: { revalidate: 3600 },
     });
@@ -306,7 +307,7 @@ export async function getKitsuMangaById(
 ): Promise<MDManga | null> {
   try {
     const url = `${BASE}/manga/${kitsuId}?include=categories,mappings`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       cache: 'no-store',
     });
@@ -339,7 +340,7 @@ export async function searchKitsuManga(
   try {
     const url =
       `${BASE}/manga?filter[text]=${encodeURIComponent(query)}&page[limit]=${safeLimit}&${LIST_FIELDS}&include=categories`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       next: { revalidate: 300 },
     });
@@ -360,7 +361,7 @@ export async function getKitsuCategories(
 ): Promise<KitsuCategory[]> {
   try {
     const url = `${BASE}/categories?page[limit]=${limit}&sort=-total_media_count&filter[nsfw]=false`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       next: { revalidate: 86400 },
     });
@@ -393,7 +394,7 @@ export async function getKitsuMangaByCategory(
   try {
     const url =
       `${BASE}/manga?filter[categories]=${encodeURIComponent(categorySlug)}&page[limit]=${safeLimit}&sort=${sort}&${LIST_FIELDS}&include=categories`;
-    const res = await fetch(url, {
+    const res = await providerFetch(url, {
       headers: { Accept: ACCEPT },
       next: { revalidate: 3600 },
     });

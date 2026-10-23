@@ -1,3 +1,4 @@
+import { providerFetch } from './server/outbound';
 import { normalizeMangaTitle, type MDManga } from './mangadex';
 
 const BASE = (process.env.MANGAUPDATES_API_BASE ?? 'https://api.mangaupdates.com/v1')
@@ -163,7 +164,7 @@ export function selectMangaUpdatesSearchMatch(
 
 async function searchMangaUpdates(query: string): Promise<MangaUpdatesSearchCandidate[]> {
   try {
-    const response = await fetch(`${BASE}/series/search`, {
+    const response = await providerFetch(`${BASE}/series/search`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -246,7 +247,7 @@ export function parseMangaUpdatesPublication(raw: Record<string, unknown>): Mang
 async function getMangaUpdatesSeries(seriesId: string): Promise<MangaUpdatesPublication | null> {
   if (!/^\d+$/.test(seriesId)) return null;
   try {
-    const response = await fetch(`${BASE}/series/${seriesId}`, {
+    const response = await providerFetch(`${BASE}/series/${seriesId}`, {
       headers: { Accept: 'application/json' },
       cache: 'force-cache',
       next: {

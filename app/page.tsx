@@ -1,6 +1,10 @@
 import { getTrending, getPopular, getSeasonalAnime, getCurrentSeason } from "@/lib/anilist";
 import AnimeHeroCarousel from "@/components/AnimeHeroCarousel";
 import AnimeGrid from "@/components/AnimeGrid";
+import ProviderUnavailable from '@/components/ProviderUnavailable';
+import { UpstreamError } from '@/lib/server/outbound';
+import { connection } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 
 export const revalidate = 3600;
 
@@ -15,13 +19,24 @@ const GENRE_TAGS = [
 ];
 
 export default async function HomePage() {
+  await connection();
   const { season, year } = getCurrentSeason();
 
-  const [trending, popular, seasonal] = await Promise.all([
-    getTrending(1, 20),
-    getPopular(1, 18),
-    getSeasonalAnime(season, year, 1, 18),
-  ]);
+  let discovery;
+  try {
+    discovery = await Promise.all([
+      getTrending(1, 20),
+      getPopular(1, 18),
+      getSeasonalAnime(season, year, 1, 18),
+    ]);
+  } catch (error) {
+    unstable_rethrow(error);
+    if (!(error instanceof UpstreamError)) throw error;
+    return <main><ProviderUnavailable title="Anime library temporarily unavailable"
+      message="Anime data cannot be loaded right now. Please retry shortly or browse another library."
+      backHref="/manga" backLabel="Browse manga" retryHref="/" /></main>;
+  }
+  const [trending, popular, seasonal] = discovery;
 
   return (
     <main>

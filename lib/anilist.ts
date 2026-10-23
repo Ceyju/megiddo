@@ -1,9 +1,10 @@
 import { GraphQLClient } from 'graphql-request';
+import { providerFetch } from './server/outbound';
 import type { AniListAnime, AniListPageInfo } from '@/types';
 import { sanitizeOfficialMangaUrl, type MDManga } from './mangadex';
 
 const ANILIST_GQL = process.env.ANILIST_ENDPOINT ?? '';
-const client = new GraphQLClient(ANILIST_GQL);
+const client = new GraphQLClient(ANILIST_GQL, { fetch: providerFetch });
 
 // ---------------------------------------------------------------------------
 // Anime fragments & types

@@ -12,6 +12,7 @@ async function gbFetch(path: string, parameters: Record<string, string> = {}) {
       allowedOrigins: [new URL(base).origin], expectedType: 'json', next: { revalidate: 3600 },
     });
   } catch (error) {
+    if (error instanceof UpstreamError && error.status === 503) throw error;
     if (error instanceof UpstreamError && error.upstreamStatus === 404) return null;
     const status = error instanceof UpstreamError ? error.upstreamStatus : undefined;
     console.error('[Google Books] provider request failed', { status: status ?? 'network-or-response-error' });
