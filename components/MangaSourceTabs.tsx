@@ -5,14 +5,15 @@ import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 const SOURCES = [
+  { id: 'atsumaru', label: 'Atsumaru', color: '#7B52AB' },
   { id: 'anilist',  label: 'AniList',   color: '#02a9ff' },
   { id: 'mangadex', label: 'MangaDex',  color: '#FF6740' },
-  { id: 'atsumaru', label: 'Atsumaru', color: '#7B52AB' },
 ];
 
 export default function MangaSourceTabs() {
   const searchParams = useSearchParams();
-  const current = searchParams.get('source') ?? 'anilist';
+  const source = searchParams.get('source');
+  const current = SOURCES.some(s => s.id === source) ? source : 'atsumaru';
   const [hovered, setHovered] = useState<string | null>(null);
 
   return (

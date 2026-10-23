@@ -137,7 +137,7 @@ export default async function MangaPage({ searchParams }: Props) {
   if (rawSource === 'kitsu') redirect('/manga?source=atsumaru');
   const source = VALID_SOURCES.includes(rawSource ?? '')
     ? (rawSource as string)
-    : 'anilist';
+    : 'atsumaru';
 
   const { popular, latest, trending, trendingLabel } = await fetchBySource(source);
 

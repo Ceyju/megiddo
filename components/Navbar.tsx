@@ -36,8 +36,9 @@ export default function Navbar() {
     if (!q) return;
     if (isManga) {
       const source = new URLSearchParams(window.location.search).get('source');
-      const suffix = source === 'atsumaru' || pathname.startsWith('/manga/atsumaru') ? '&source=atsumaru' : '';
-      router.push(`/manga/search?q=${encodeURIComponent(q)}${suffix}`);
+      const catalog = pathname === '/manga' || pathname === '/manga/search';
+      const useAtsumaru = pathname.startsWith('/manga/atsumaru') || (catalog && source !== 'mangadex' && source !== 'anilist');
+      router.push(`/manga/search?q=${encodeURIComponent(q)}&source=${useAtsumaru ? 'atsumaru' : 'mangadex'}`);
     }
     else if (isNovels) router.push(`/webnovels?q=${encodeURIComponent(q)}`);
     else router.push(`/search?q=${encodeURIComponent(q)}`);
@@ -95,7 +96,7 @@ export default function Navbar() {
         <nav className="hidden md:flex shrink-0 items-center gap-5 lg:gap-7">
           {[ 
             { href: "/", label: "ANIME" },
-            { href: "/manga?source=anilist", label: "MANGA/MANHUA/MANHWA" },
+            { href: "/manga", label: "MANGA/MANHUA/MANHWA" },
             { href: "/webnovels", label: "NOVELS" },
           ].map(({ href, label }) => (
             <Link
@@ -188,7 +189,7 @@ export default function Navbar() {
         >
           {[
             { href: "/", label: "HOME" },
-            { href: "/manga?source=anilist", label: "MANGA" },
+            { href: "/manga", label: "MANGA" },
             { href: "/webnovels", label: "NOVELS" },
           ].map(({ href, label }) => (
             <Link

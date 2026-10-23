@@ -11,7 +11,7 @@ interface Props {
 
 export default async function MangaSearchPage({ searchParams }: Props) {
   const { q, source: rawSource } = await searchParams;
-  const source = rawSource === 'atsumaru' || rawSource === 'kitsu' ? 'atsumaru' : 'mangadex';
+  const source = rawSource === 'mangadex' || rawSource === 'anilist' ? 'mangadex' : 'atsumaru';
   const query = q?.trim() ?? '';
   if (query.length > 100) return <ProviderUnavailable title="Search query is too long" backHref="/manga" backLabel="Browse manga" />;
   let merged;
