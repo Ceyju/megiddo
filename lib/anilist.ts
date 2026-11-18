@@ -1,9 +1,10 @@
 import { GraphQLClient } from 'graphql-request';
 import { providerFetch } from './server/outbound';
+import { serverBaseUrl } from './server/env';
 import type { AniListAnime, AniListPageInfo } from '@/types';
 import { sanitizeOfficialMangaUrl, type MDManga } from './mangadex';
 
-const ANILIST_GQL = process.env.ANILIST_ENDPOINT ?? '';
+const ANILIST_GQL = serverBaseUrl('ANILIST_ENDPOINT') ?? 'https://graphql.anilist.co';
 const client = new GraphQLClient(ANILIST_GQL, { fetch: providerFetch });
 
 // ---------------------------------------------------------------------------

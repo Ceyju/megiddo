@@ -1,6 +1,5 @@
 export const EMBED_PROVIDERS = {
-  aniweeb: { label: 'Aniweeb', origin: 'https://api.aniweeb.net' },
-  vidnest: { label: 'VidNest', origin: 'https://vidnest.fun' },
+  aniembed: { label: 'AniEmbed', origin: 'https://aniembed.se' },
 } as const;
 
 export type EmbedProviderId = keyof typeof EMBED_PROVIDERS;
@@ -11,11 +10,7 @@ export interface IframeProvider {
   src: string;
 }
 
-// Redirect targets are permitted in CSP, but are not selectable providers.
-export const PLAYER_FRAME_ORIGINS = [
-  ...Object.values(EMBED_PROVIDERS).map(provider => provider.origin),
-  'https://nikastream.blog',
-];
+export const PLAYER_FRAME_ORIGINS = Object.values(EMBED_PROVIDERS).map(provider => provider.origin);
 
 export function safePlayerUrl(value: string, id?: EmbedProviderId): string | null {
   try {

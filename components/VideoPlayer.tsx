@@ -16,7 +16,7 @@ interface VideoPlayerProps {
   streamingLinks?: StreamingLink[];
 }
 
-const EMBED_POLICY_VERSION = "sandboxed-anime-v2";
+const EMBED_POLICY_VERSION = "sandboxed-anime-v4";
 const PROVIDER_TIMEOUT_MS = 12_000;
 
 function safeHttpsUrl(value: string, allowedHosts?: Set<string>) {
@@ -30,7 +30,7 @@ function safeHttpsUrl(value: string, allowedHosts?: Set<string>) {
 }
 
 export default function VideoPlayer({ title, iframeSrc, iframeProviders, streamingLinks = [] }: VideoPlayerProps) {
-  const providers = (iframeProviders?.length ? iframeProviders : iframeSrc ? [{ id: 'vidnest' as const, label: "VidNest", src: iframeSrc }] : [])
+  const providers = (iframeProviders?.length ? iframeProviders : iframeSrc ? [{ id: 'aniembed' as const, label: "AniEmbed", src: iframeSrc }] : [])
     .flatMap((provider) => {
       const src = safePlayerUrl(provider.src, provider.id);
       return src ? [{ ...provider, src }] : [];
@@ -130,6 +130,7 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
   };
 
   const handleProviderLoad = () => {
+    // A cross-origin error page can also fire load; keep manual recovery available.
     setLoadedAttemptKey(providerAttemptKey);
     setTimedOutAttemptKey(null);
   };
@@ -163,7 +164,6 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
         {officialLinks.length > 0 && (
           <button className="provider-tab" role="tab" aria-selected={isOfficial} onClick={() => setActive(officialIndex)}>Official</button>
         )}
-        {/* <span className="provider-help">Try another source if playback is unavailable</span> -- check on this if there is another source available */}
       </div>
 
       {!isOfficial && provider && (
@@ -183,7 +183,7 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
           {isProviderTimedOut && (
               <div className="provider-timeout" role="alert">
                 <strong>Provider is taking too long</strong>
-                <span>{provider.label} did not finish loading. Retry or select the other source.</span>
+                <span>{provider.label} did not finish loading. {alternateIndex >= 0 ? 'Retry or select the other source.' : 'Retry or open the provider externally.'}</span>
                 <div className="provider-timeout-actions">
                   <button type="button" className="editorial-button" onClick={retryProvider}>Retry provider</button>
                   {alternateIndex >= 0 && (
@@ -192,8 +192,8 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
                 </div>
               </div>
           )}
-          {/* <div className="player-frame-actions">
-            <span role="status" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Not playing? Retry or switch sources.</span>
+          <div className="player-frame-actions">
+            <span role="status" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Not playing? {alternateIndex >= 0 ? 'Retry or switch sources.' : 'Retry or open the provider externally.'}</span>
             <button type="button" className="editorial-button" onClick={retryProvider}>Retry source</button>
             {alternateIndex >= 0 && <button type="button" className="editorial-button" onClick={() => selectProvider(alternateIndex)}>Switch to {providers[alternateIndex].label}</button>}
             <a className="player-external-link" href={provider.src} target="_blank" rel="noopener noreferrer">Open provider externally</a>
@@ -205,9 +205,8 @@ function IsolatedPlayer({ providers, title, streamingLinks }: {
               onClick={toggleFullscreen}
             >
               {isFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-              <span>{isFullscreen ? "" : ""}</span>
             </button>
-          </div> */}
+          </div>
         </>
       )}
 
