@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, unstable_rethrow } from 'next/navigation';
 import { getPopularManga, getLatestManga, getTrendingManga } from '@/lib/mangadex';
 import { discoverAtsumaru } from '@/lib/atsumaru';
 import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/anilist';
@@ -8,6 +8,8 @@ import MangaCard from '@/components/MangaCard';
 import MangaSourceTabs from '@/components/MangaSourceTabs';
 import MangaHeroCarousel from '@/components/MangaHeroCarousel';
 import MediaCardGrid from '@/components/MediaCardGrid';
+import ProviderUnavailable from '@/components/ProviderUnavailable';
+import { UpstreamError } from '@/lib/server/outbound';
 
 export const revalidate = 600;
 
@@ -139,7 +141,34 @@ export default async function MangaPage({ searchParams }: Props) {
     ? (rawSource as string)
     : 'atsumaru';
 
-  const { popular, latest, trending, trendingLabel } = await fetchBySource(source);
+  let data: SourceData;
+  try {
+    data = await fetchBySource(source);
+  } catch (error) {
+    unstable_rethrow(error);
+    if (!(error instanceof UpstreamError)) throw error;
+    const label = source === 'atsumaru' ? 'Atsumaru' : source === 'anilist' ? 'AniList' : 'MangaDex';
+    const alternative = source === 'mangadex' ? 'anilist' : 'mangadex';
+    const alternativeLabel = alternative === 'anilist' ? 'AniList' : 'MangaDex';
+    const blocked = source === 'atsumaru' && error.upstreamStatus === 403;
+    return (
+      <div className="page-gutter" style={{ maxWidth: '2000px', margin: '0 auto', paddingBlock: '2.5rem 4rem' }}>
+        <Suspense fallback={<div style={{ height: '34px' }} />}>
+          <MangaSourceTabs />
+        </Suspense>
+        <ProviderUnavailable
+          title={`${label} temporarily unavailable`}
+          message={blocked
+            ? 'Atsumaru is not accepting requests from this server. Retry later or choose another source.'
+            : 'This source could not be loaded. Retry shortly or choose another source.'}
+          backHref={`/manga?source=${alternative}`}
+          backLabel={`Browse ${alternativeLabel}`}
+          retryHref={`/manga?source=${source}`}
+        />
+      </div>
+    );
+  }
+  const { popular, latest, trending, trendingLabel } = data;
 
   return (
     <div style={{ maxWidth: '2000px', margin: '0 auto', padding: '0 0 4rem' }}>

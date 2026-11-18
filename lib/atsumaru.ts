@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { unstable_rethrow } from 'next/navigation';
 import type { MDManga, MDChapter, MDPage } from './mangadex';
 import { serverBaseUrl } from './server/env';
 import { outboundFetch, UpstreamError } from './server/outbound';
@@ -35,7 +36,12 @@ async function request<T>(path: string, maxBytes = 1_048_576): Promise<T | null>
     return await outboundFetch<T>(`${base}${path}`, { allowedOrigins: [new URL(base).origin], expectedType: 'json', maxBytes,
       headers: { Accept: 'application/json' }, next: { revalidate: 300 } }) as T;
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof UpstreamError && [404, 410].includes(error.upstreamStatus ?? 0)) return null;
+    if (error instanceof UpstreamError && error.upstreamStatus === 403) {
+      console.warn(`[manga] ${JSON.stringify({ provider: 'atsumaru', category: 'access-denied', upstreamStatus: 403 })}`);
+      throw new UpstreamError('Atsumaru is not accepting requests from this server', 502, 403);
+    }
     console.error(`[manga] ${JSON.stringify({ provider: 'atsumaru', category: 'request', upstreamStatus: error instanceof UpstreamError ? error.upstreamStatus : undefined })}`);
     if (error instanceof UpstreamError) throw error;
     throw new UpstreamError('Atsumaru is temporarily unavailable');
