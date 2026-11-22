@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import Link from 'next/link';
 import HoverLink from '@/components/HoverLink';
 import Image from 'next/image';
@@ -6,8 +6,11 @@ import { type MDManga, type MDChapter, getMangaById, getMangaChapters, findManga
 import { getKitsuMangaById } from '@/lib/kitsu';
 import { getMangaByIdAL } from '@/lib/anilist';
 import { getAtsumaruDetail } from '@/lib/atsumaru';
+import { getWeebCentralDetail } from '@/lib/weebcentral';
+import { isWeebCentralImage } from '@/lib/weebcentral-images';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
+import { UpstreamError } from '@/lib/server/outbound';
 import {
   getMangaUpdatesPublication,
   type MangaUpdatesPublication,
@@ -155,7 +158,22 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
   let selectedTranslation: string | undefined;
 
   // ── Atsumaru ─────────────────────────────────────────────────────
-  if (id.startsWith('atsumaru:')) {
+  if (id.startsWith('weebcentral:')) {
+    let data;
+    try { data = await getWeebCentralDetail(id); }
+    catch (error) {
+      unstable_rethrow(error);
+      if (error instanceof ProviderNotFoundError) return notFound();
+      if (!(error instanceof UpstreamError)) throw error;
+      return <ProviderUnavailable title="Weeb Central temporarily unavailable" backHref="/manga?source=weebcentral" backLabel="Browse manga" retryHref={`/manga/${encodeURIComponent(id)}`} />;
+    }
+    if (!data) return notFound();
+    manga = data.manga;
+    total = readableTotal = data.chapters.length;
+    complete = data.complete;
+    chapters = data.chapters.slice((page - 1) * CHAPTERS_PER_PAGE, page * CHAPTERS_PER_PAGE);
+    sourceLabel = 'WEEB CENTRAL';
+  } else if (id.startsWith('atsumaru:')) {
     let data;
     try { data = await getAtsumaruDetail(id, translation); }
     catch (error) {
@@ -259,7 +277,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
       {/* Breadcrumb */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
         <Link
-          href={id.startsWith('atsumaru:') || id.startsWith('kitsu:') ? '/manga?source=atsumaru' : id.startsWith('anilist:') ? '/manga?source=anilist' : '/manga?source=mangadex'}
+          href={id.startsWith('weebcentral:') ? '/manga?source=weebcentral' : id.startsWith('atsumaru:') || id.startsWith('kitsu:') ? '/manga?source=atsumaru' : id.startsWith('anilist:') ? '/manga?source=anilist' : '/manga?source=mangadex'}
           style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.68rem', letterSpacing: '0.1em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase' }}
         >
           MANGA
@@ -282,6 +300,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
             {manga.coverUrl ? (
               <Image
                 src={manga.coverUrl}
+                unoptimized={isWeebCentralImage(manga.coverUrl)}
                 alt={manga.title}
                 fill
                 sizes="200px"

@@ -58,7 +58,7 @@ export interface MDChapter {
   pageCount: number;
   scanlationGroup: string;
   availability: ChapterAvailability;
-  provider: 'MangaDex' | 'Kitsu' | 'Atsumaru';
+  provider: 'MangaDex' | 'Kitsu' | 'Atsumaru' | 'Weeb Central';
   scanlationId?: string;
   sourceIndex?: number;
   externalUrl: string | null;

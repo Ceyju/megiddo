@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEditorialCarousel } from "./useEditorialCarousel";
 import WobbleCard from "@/components/motion/WobbleCard";
+import { isWeebCentralImage } from '@/lib/weebcentral-images';
 
 export interface EditorialSlide {
   key: string;
@@ -41,7 +42,7 @@ export default function EditorialHeroCarousel({ items, label }: { items: Editori
     >
       {background && (
         <div data-carousel-bg className="editorial-carousel__background" key={`background-${item.key}`}>
-          <Image src={background} alt="" fill sizes="100vw" />
+          <Image src={background} alt="" fill sizes="100vw" loading="eager" unoptimized={isWeebCentralImage(background)} />
         </div>
       )}
       <div className="editorial-carousel__wash" />
@@ -56,7 +57,7 @@ export default function EditorialHeroCarousel({ items, label }: { items: Editori
         {item.image && (
           <WobbleCard className="hero-wobble">
             <div data-carousel-cover className="editorial-carousel__cover" key={`cover-${item.key}`}>
-              <Image src={item.image} alt={item.title} fill sizes="200px" />
+              <Image src={item.image} alt={item.title} fill sizes="200px" loading="eager" unoptimized={isWeebCentralImage(item.image)} />
             </div>
           </WobbleCard>
         )}

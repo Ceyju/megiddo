@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { getPopularManga, getLatestManga, getTrendingManga } from '@/lib/mangadex';
 import { discoverAtsumaru } from '@/lib/atsumaru';
+import { discoverWeebCentral } from '@/lib/weebcentral';
 import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/anilist';
 import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
@@ -26,6 +27,12 @@ type SourceData = {
 
 async function fetchBySource(source: string): Promise<SourceData> {
   switch (source) {
+    case 'weebcentral': {
+      const popular = await discoverWeebCentral('Popularity');
+      const latest = await discoverWeebCentral('Latest Updates');
+      const trending = await discoverWeebCentral('Recently Added');
+      return { popular, latest, trending, trendingLabel: 'RECENTLY ADDED' };
+    }
     case 'atsumaru': {
       const [popular, latest, trending] = await Promise.all([
         discoverAtsumaru('popular'),
@@ -132,7 +139,7 @@ function Grid({ items }: { items: MDManga[] }) {
   );
 }
 
-const VALID_SOURCES = ['mangadex', 'atsumaru', 'anilist'];
+const VALID_SOURCES = ['mangadex', 'atsumaru', 'anilist', 'weebcentral'];
 
 export default async function MangaPage({ searchParams }: Props) {
   const { source: rawSource } = await searchParams;
@@ -147,7 +154,7 @@ export default async function MangaPage({ searchParams }: Props) {
   } catch (error) {
     unstable_rethrow(error);
     if (!(error instanceof UpstreamError)) throw error;
-    const label = source === 'atsumaru' ? 'Atsumaru' : source === 'anilist' ? 'AniList' : 'MangaDex';
+    const label = source === 'weebcentral' ? 'Weeb Central' : source === 'atsumaru' ? 'Atsumaru' : source === 'anilist' ? 'AniList' : 'MangaDex';
     const alternative = source === 'mangadex' ? 'anilist' : 'mangadex';
     const alternativeLabel = alternative === 'anilist' ? 'AniList' : 'MangaDex';
     const blocked = source === 'atsumaru' && error.upstreamStatus === 403;

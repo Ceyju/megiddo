@@ -38,7 +38,8 @@ export default function Navbar() {
       const source = new URLSearchParams(window.location.search).get('source');
       const catalog = pathname === '/manga' || pathname === '/manga/search';
       const useAtsumaru = pathname.startsWith('/manga/atsumaru') || (catalog && source !== 'mangadex' && source !== 'anilist');
-      router.push(`/manga/search?q=${encodeURIComponent(q)}&source=${useAtsumaru ? 'atsumaru' : 'mangadex'}`);
+      const useWeebCentral = pathname.startsWith('/manga/weebcentral:') || pathname.startsWith('/manga/weebcentral%3A') || (catalog && source === 'weebcentral');
+      router.push(`/manga/search?q=${encodeURIComponent(q)}&source=${useWeebCentral ? 'weebcentral' : useAtsumaru ? 'atsumaru' : 'mangadex'}`);
     }
     else if (isNovels) router.push(`/webnovels?q=${encodeURIComponent(q)}`);
     else router.push(`/search?q=${encodeURIComponent(q)}`);

@@ -86,7 +86,7 @@ export default function MangaReader({ pages, mangaId, chapterNumber, prevChapter
                 style={{ width: "100%", height: "auto", display: failed ? 'none' : 'block', opacity: status[key] === 'loaded' ? 1 : 0, transition: "opacity 0.2s" }}
                 onLoad={() => setStatus(previous => ({ ...previous, [key]: 'loaded' }))}
                 onError={() => setStatus(previous => ({ ...previous, [key]: 'error' }))}
-                unoptimized={providerLabel !== 'Atsumaru'}
+                unoptimized={providerLabel !== 'Atsumaru' || src.startsWith('/api/manga/image?')}
                 sizes="(max-width: 800px) 100vw, 800px"
                 loading={i < 3 ? "eager" : "lazy"}
                 priority={i < 2}

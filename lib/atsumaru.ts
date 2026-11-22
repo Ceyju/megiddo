@@ -5,6 +5,7 @@ import { serverBaseUrl } from './server/env';
 import { outboundFetch, UpstreamError } from './server/outbound';
 import { ProviderNotFoundError } from './server/provider-errors';
 import { stripTags } from './novel-parsers';
+import { atsumaruImageSource } from './atsumaru-images';
 
 interface Series {
   id: string; title: string; type: string; medium: string; isAdult: boolean;
@@ -34,7 +35,8 @@ async function request<T>(path: string, maxBytes = 1_048_576): Promise<T | null>
   try {
     const base = serverBaseUrl('ATSUMARU_BASE_URL') ?? 'https://atsu.moe';
     return await outboundFetch<T>(`${base}${path}`, { allowedOrigins: [new URL(base).origin], expectedType: 'json', maxBytes,
-      headers: { Accept: 'application/json' }, next: { revalidate: 300 } }) as T;
+      headers: { Accept: 'application/json', 'User-Agent': process.env.USER_AGENT?.trim() || 'Megiddo/0.1 (personal manga reader)' },
+      next: { revalidate: 300 } }) as T;
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof UpstreamError && [404, 410].includes(error.upstreamStatus ?? 0)) return null;
@@ -57,7 +59,8 @@ function asset(path: string): string {
   const resolvedPath = /^\/?posters\//.test(path) ? `/static/${path.replace(/^\//, '')}` : path;
   const url = new URL(resolvedPath, `${base}/`);
   required(url.origin === new URL(base).origin && !url.username && !url.password && url.protocol === 'https:', 'an unapproved image URL');
-  return url.href;
+  try { return atsumaruImageSource(url); }
+  catch { throw new UpstreamError('Atsumaru returned an invalid image path'); }
 }
 function toManga(series: Series): MDManga {
   required(validId(series.id) && typeof series.title === 'string' && series.title.trim(), 'invalid series metadata');

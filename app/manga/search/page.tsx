@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { searchManga } from '@/lib/mangadex';
 import { searchAtsumaru } from '@/lib/atsumaru';
+import { searchWeebCentral } from '@/lib/weebcentral';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
 import MangaCard from '@/components/MangaCard';
 import MediaCardGrid from '@/components/MediaCardGrid';
@@ -11,11 +12,12 @@ interface Props {
 
 export default async function MangaSearchPage({ searchParams }: Props) {
   const { q, source: rawSource } = await searchParams;
-  const source = rawSource === 'mangadex' || rawSource === 'anilist' ? 'mangadex' : 'atsumaru';
+  const source = rawSource === 'weebcentral' ? 'weebcentral' : rawSource === 'mangadex' || rawSource === 'anilist' ? 'mangadex' : 'atsumaru';
+  const label = source === 'weebcentral' ? 'Weeb Central' : source === 'atsumaru' ? 'Atsumaru' : 'MangaDex';
   const query = q?.trim() ?? '';
   if (query.length > 100) return <ProviderUnavailable title="Search query is too long" backHref="/manga" backLabel="Browse manga" />;
   let merged;
-  try { merged = query.length > 1 ? await (source === 'atsumaru' ? searchAtsumaru(query) : searchManga(query, 18)) : []; }
+  try { merged = query.length > 1 ? await (source === 'weebcentral' ? searchWeebCentral(query) : source === 'atsumaru' ? searchAtsumaru(query) : searchManga(query, 18)) : []; }
   catch { return <ProviderUnavailable title="Manga search temporarily unavailable" backHref={`/manga?source=${source}`} backLabel="Browse manga" retryHref={`/manga/search?source=${source}&q=${encodeURIComponent(query)}`} />; }
 
   return (
@@ -24,7 +26,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
       {/* ── Header ──────────────────────────────────────────── */}
       <header style={{ padding: '2.5rem 0 1.75rem', borderBottom: '1px solid var(--border)', marginBottom: '0' }}>
         <nav style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1.25rem' }}>
-          <Link href="/manga" style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.63rem', letterSpacing: '0.14em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase' }}>
+          <Link href={`/manga?source=${source}`} style={{ fontFamily: 'var(--font-condensed, Arial)', fontSize: '0.63rem', letterSpacing: '0.14em', color: 'var(--muted)', textDecoration: 'none', textTransform: 'uppercase' }}>
             MANGA
           </Link>
           <span style={{ color: 'var(--red)', fontSize: '0.6rem' }}>›</span>
@@ -84,7 +86,7 @@ export default async function MangaSearchPage({ searchParams }: Props) {
             SEARCH
           </button>
         </form>
-        <p style={{ marginTop: '0.75rem', color: 'var(--muted)' }}>Searching {source === 'atsumaru' ? 'Atsumaru' : 'MangaDex'} · <Link href={`/manga/search?source=${source === 'atsumaru' ? 'mangadex' : 'atsumaru'}&q=${encodeURIComponent(query)}`}>Search {source === 'atsumaru' ? 'MangaDex' : 'Atsumaru'} instead</Link></p>
+        <p style={{ marginTop: '0.75rem', color: 'var(--muted)' }}>Searching {label} · <Link href={`/manga/search?source=${source === 'mangadex' ? 'weebcentral' : 'mangadex'}&q=${encodeURIComponent(query)}`}>Search {source === 'mangadex' ? 'Weeb Central' : 'MangaDex'} instead</Link></p>
       </div>
 
       {/* ── Results Header ───────────────────────────────────── */}

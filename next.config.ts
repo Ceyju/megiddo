@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PLAYER_FRAME_ORIGINS } from './lib/embed-providers';
+import { WEEBCENTRAL_IMAGE_ORIGINS } from './lib/weebcentral-images';
 
 const isProduction = process.env.NODE_ENV === "production";
 const enforceCsp = process.env.CSP_ENFORCE === "true";
@@ -7,7 +8,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://s4.anilist.co https://img1.ak.crunchyroll.com https://media.kitsu.app https://uploads.mangadex.org https://*.mangadex.network https://cdn.atsu.moe https://books.google.com https://novelfire.net https://rs.novelbuddy.me",
+  `img-src 'self' blob: data: https://s4.anilist.co https://img1.ak.crunchyroll.com https://media.kitsu.app https://uploads.mangadex.org https://*.mangadex.network https://cdn.atsu.moe https://books.google.com https://novelfire.net https://rs.novelbuddy.me ${WEEBCENTRAL_IMAGE_ORIGINS.join(' ')}`,
   "media-src 'self' blob:",
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
@@ -43,6 +44,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    localPatterns: [
+      { pathname: '**', search: '' },
+      // Only the validated Atsumaru image route needs local query parameters.
+      { pathname: '/api/manga/image' },
+    ],
     remotePatterns: [
       { protocol: "https", hostname: "s4.anilist.co" },
       { protocol: "https", hostname: "img1.ak.crunchyroll.com" },

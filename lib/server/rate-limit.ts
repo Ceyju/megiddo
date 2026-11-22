@@ -4,7 +4,7 @@ import { Redis } from "@upstash/redis";
 import type { NextRequest } from "next/server";
 import { unstable_rethrow } from 'next/navigation';
 
-export type RateLimitProfile = "search" | "novel";
+export type RateLimitProfile = "search" | "novel" | "mangaImage";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -15,7 +15,7 @@ export interface RateLimitResult {
   reset: number;
 }
 
-const limits = { search: 30, novel: 20 };
+const limits = { search: 30, novel: 20, mangaImage: 120 };
 const REDIS_TIMEOUT_MS = 5_000;
 const limiters = new Map<string, Ratelimit>();
 const localWindows = new Map<string, { count: number; reset: number }>();

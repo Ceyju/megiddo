@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 const SOURCES = [
+  { id: 'weebcentral', label: 'Weeb Central', color: '#75b798' },
   { id: 'atsumaru', label: 'Atsumaru', color: '#7B52AB' },
   { id: 'anilist',  label: 'AniList',   color: '#02a9ff' },
   { id: 'mangadex', label: 'MangaDex',  color: '#FF6740' },

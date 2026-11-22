@@ -1,5 +1,6 @@
 import { getChapterPages, type MDChapter, type MDPage } from './mangadex';
 import { getAtsumaruPages } from './atsumaru';
+import { getWeebCentralPages } from './weebcentral';
 
 export type ExternalReaderMode = 'iframe' | 'notice';
 
@@ -101,5 +102,14 @@ export const atsumaruPageProvider = defineMangaPageProvider({
   resolvePages: (chapterId, context) => {
     if (!context || context.chapter.id !== chapterId || context.chapter.provider !== 'Atsumaru') throw new Error('Atsumaru chapter context is required');
     return getAtsumaruPages(context.mangaId, context.chapter);
+  },
+});
+
+export const weebCentralPageProvider = defineMangaPageProvider({
+  id: 'weebcentral', label: 'Weeb Central', authorization: 'public-site-api', attribution: 'Images served by Weeb Central',
+  canHandle: chapter => chapter.provider === 'Weeb Central' && chapter.availability === 'hosted',
+  resolvePages: (chapterId, context) => {
+    if (!context || context.chapter.id !== chapterId || context.chapter.provider !== 'Weeb Central') throw new Error('Weeb Central chapter context is required');
+    return getWeebCentralPages(context.mangaId, context.chapter);
   },
 });

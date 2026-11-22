@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import {
   findMangaForCatalogEntry,
   getMangaChapterInventory,
@@ -9,6 +9,7 @@ import {
   getReadableChapterNavigation,
   mangaDexPageProvider,
   atsumaruPageProvider,
+  weebCentralPageProvider,
   resolveExternalReaderPolicy,
 } from '@/lib/manga-reader-providers';
 import { getMangaByIdAL } from '@/lib/anilist';
@@ -19,6 +20,8 @@ import ProviderUnavailable from '@/components/ProviderUnavailable';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import { uuid, providerId } from '@/lib/server/validation';
 import { atsumaruId, getAtsumaruChapterInventory } from '@/lib/atsumaru';
+import { weebCentralId, getWeebCentralChapterInventory } from '@/lib/weebcentral';
+import { UpstreamError } from '@/lib/server/outbound';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +67,27 @@ export default async function MangaReaderPage({ params }: Props) {
   const { id: rawMangaId, chapterId: rawChapterId } = await params;
   const mangaId = decodeURIComponent(rawMangaId);
   const chapterId = decodeURIComponent(rawChapterId);
+
+  if (mangaId.startsWith('weebcentral:')) {
+    try { weebCentralId(mangaId); weebCentralId(chapterId); } catch { return notFound(); }
+    let data;
+    let navigation;
+    let pages;
+    try {
+      data = await getWeebCentralChapterInventory(mangaId, chapterId);
+      navigation = data && getReadableChapterNavigation(data.chapters, chapterId);
+      if (!navigation || !weebCentralPageProvider.canHandle(navigation.current)) throw new ProviderNotFoundError();
+      pages = await weebCentralPageProvider.resolvePages(chapterId, { mangaId, chapter: navigation.current });
+    } catch (error) {
+      unstable_rethrow(error);
+      if (!(error instanceof UpstreamError) && !(error instanceof ProviderNotFoundError)) throw error;
+      return <ProviderUnavailable title={error instanceof ProviderNotFoundError ? 'Chapter unavailable' : 'Weeb Central temporarily unavailable'}
+        backHref={`/manga/${encodeURIComponent(mangaId)}`} backLabel="All chapters" retryHref={`/manga/${encodeURIComponent(mangaId)}/${encodeURIComponent(chapterId)}`} />;
+    }
+    return <><ProviderBadge source="WEEB CENTRAL" images="WEEB CENTRAL" /><MangaReader pages={pages} mangaId={mangaId} chapterId={chapterId}
+      chapterNumber={navigation.current.chapter} prevChapterId={navigation.previousId} nextChapterId={navigation.nextId}
+      providerLabel="Weeb Central" inventoryComplete={data!.complete} /></>;
+  }
 
   if (mangaId.startsWith('atsumaru:')) {
     try { atsumaruId(mangaId); atsumaruId(chapterId); } catch { return notFound(); }
