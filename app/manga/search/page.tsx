@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { searchManga } from '@/lib/mangadex';
 import { searchAtsumaru } from '@/lib/atsumaru';
-import { searchWeebCentral } from '@/lib/weebcentral';
+import { searchWeebCentral, reportWeebCentralFailure } from '@/lib/weebcentral';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
 import MangaCard from '@/components/MangaCard';
 import MediaCardGrid from '@/components/MediaCardGrid';
@@ -18,7 +18,10 @@ export default async function MangaSearchPage({ searchParams }: Props) {
   if (query.length > 100) return <ProviderUnavailable title="Search query is too long" backHref="/manga" backLabel="Browse manga" />;
   let merged;
   try { merged = query.length > 1 ? await (source === 'weebcentral' ? searchWeebCentral(query) : source === 'atsumaru' ? searchAtsumaru(query) : searchManga(query, 18)) : []; }
-  catch { return <ProviderUnavailable title="Manga search temporarily unavailable" backHref={`/manga?source=${source}`} backLabel="Browse manga" retryHref={`/manga/search?source=${source}&q=${encodeURIComponent(query)}`} />; }
+  catch (error) {
+    if (source === 'weebcentral') reportWeebCentralFailure(error, 'search');
+    return <ProviderUnavailable title="Manga search temporarily unavailable" backHref={`/manga?source=${source}`} backLabel="Browse manga" retryHref={`/manga/search?source=${source}&q=${encodeURIComponent(query)}`} />;
+  }
 
   return (
     <div className="page-gutter" style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '4rem' }}>

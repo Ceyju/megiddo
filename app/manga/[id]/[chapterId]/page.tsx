@@ -20,7 +20,7 @@ import ProviderUnavailable from '@/components/ProviderUnavailable';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import { uuid, providerId } from '@/lib/server/validation';
 import { atsumaruId, getAtsumaruChapterInventory } from '@/lib/atsumaru';
-import { weebCentralId, getWeebCentralChapterInventory } from '@/lib/weebcentral';
+import { weebCentralId, getWeebCentralChapterInventory, reportWeebCentralFailure } from '@/lib/weebcentral';
 import { UpstreamError } from '@/lib/server/outbound';
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +81,7 @@ export default async function MangaReaderPage({ params }: Props) {
     } catch (error) {
       unstable_rethrow(error);
       if (!(error instanceof UpstreamError) && !(error instanceof ProviderNotFoundError)) throw error;
+      reportWeebCentralFailure(error, 'reader');
       return <ProviderUnavailable title={error instanceof ProviderNotFoundError ? 'Chapter unavailable' : 'Weeb Central temporarily unavailable'}
         backHref={`/manga/${encodeURIComponent(mangaId)}`} backLabel="All chapters" retryHref={`/manga/${encodeURIComponent(mangaId)}/${encodeURIComponent(chapterId)}`} />;
     }

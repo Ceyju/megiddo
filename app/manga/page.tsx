@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { redirect, unstable_rethrow } from 'next/navigation';
 import { getPopularManga, getLatestManga, getTrendingManga } from '@/lib/mangadex';
 import { discoverAtsumaru } from '@/lib/atsumaru';
-import { discoverWeebCentral } from '@/lib/weebcentral';
+import { discoverWeebCentral, reportWeebCentralFailure } from '@/lib/weebcentral';
 import { getPopularMangaAL, getLatestMangaAL, getTrendingMangaAL } from '@/lib/anilist';
 import { type MDManga } from '@/lib/mangadex';
 import MangaCard from '@/components/MangaCard';
@@ -154,6 +154,7 @@ export default async function MangaPage({ searchParams }: Props) {
   } catch (error) {
     unstable_rethrow(error);
     if (!(error instanceof UpstreamError)) throw error;
+    if (source === 'weebcentral') reportWeebCentralFailure(error, 'catalog');
     const label = source === 'weebcentral' ? 'Weeb Central' : source === 'atsumaru' ? 'Atsumaru' : source === 'anilist' ? 'AniList' : 'MangaDex';
     const alternative = source === 'mangadex' ? 'anilist' : 'mangadex';
     const alternativeLabel = alternative === 'anilist' ? 'AniList' : 'MangaDex';

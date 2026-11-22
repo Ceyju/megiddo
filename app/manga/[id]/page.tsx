@@ -6,7 +6,7 @@ import { type MDManga, type MDChapter, getMangaById, getMangaChapters, findManga
 import { getKitsuMangaById } from '@/lib/kitsu';
 import { getMangaByIdAL } from '@/lib/anilist';
 import { getAtsumaruDetail } from '@/lib/atsumaru';
-import { getWeebCentralDetail } from '@/lib/weebcentral';
+import { getWeebCentralDetail, reportWeebCentralFailure } from '@/lib/weebcentral';
 import { isWeebCentralImage } from '@/lib/weebcentral-images';
 import { ProviderNotFoundError } from '@/lib/server/provider-errors';
 import ProviderUnavailable from '@/components/ProviderUnavailable';
@@ -165,6 +165,7 @@ export default async function MangaDetailPage({ params, searchParams }: Props) {
       unstable_rethrow(error);
       if (error instanceof ProviderNotFoundError) return notFound();
       if (!(error instanceof UpstreamError)) throw error;
+      reportWeebCentralFailure(error, 'detail');
       return <ProviderUnavailable title="Weeb Central temporarily unavailable" backHref="/manga?source=weebcentral" backLabel="Browse manga" retryHref={`/manga/${encodeURIComponent(id)}`} />;
     }
     if (!data) return notFound();
