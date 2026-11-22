@@ -7,6 +7,17 @@ import type { MDChapter } from './mangadex';
 import { WEEBCENTRAL_ORIGIN, parseWeebCentralSearch, parseWeebCentralDetail, parseWeebCentralChapters, parseWeebCentralPages, weebCentralId } from './weebcentral-parsers';
 export { weebCentralId } from './weebcentral-parsers';
 
+export function reportWeebCentralFailure(error: unknown, operation: 'catalog' | 'search' | 'detail' | 'reader') {
+  if (!(error instanceof UpstreamError)) return;
+  const category = error.upstreamStatus === 403 ? 'access-denied'
+    : error.upstreamStatus ? 'upstream-http'
+    : error.status === 503 ? 'request-budget-or-rate-limit'
+    : error.message.startsWith('Weeb Central returned') ? 'response-validation'
+    : 'request-failed';
+  // Only bounded diagnostic fields: never serialize error messages, URLs or bodies.
+  console.warn(`[manga] ${JSON.stringify({ provider: 'weebcentral', operation, category, status: error.status, upstreamStatus: error.upstreamStatus ?? null })}`);
+}
+
 async function request(path: string, maxBytes = 2_097_152, cacheHtml = true): Promise<string | null> {
   try {
     return await outboundFetch<string>(`${WEEBCENTRAL_ORIGIN}${path}`, {
